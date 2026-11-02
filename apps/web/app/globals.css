@@ -117,8 +117,17 @@ body::before {
   .label {
     @apply mb-2 block text-[14px] font-medium text-muted;
   }
+  /* numbers in Outfit (same face as the «Solik Gifts» avatar); letters fall back to Manrope */
   .num {
+    font-family: var(--font-brand), var(--font-sans), sans-serif;
     font-variant-numeric: tabular-nums;
+  }
+  .brand-gradient {
+    background: linear-gradient(180deg, #ffffff 0%, #ffffff 35%, #a0a0a8 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    filter: drop-shadow(0 0 26px rgba(255, 255, 255, 0.22));
   }
 
   /*

@@ -24,6 +24,8 @@ export default {
         sans: ['var(--font-sans)', 'system-ui', 'sans-serif'],
         display: ['var(--font-display)', 'var(--font-sans)', 'sans-serif'],
         hand: ['var(--font-hand)', 'cursive'],
+        // Latin-only: Cyrillic in a brand span falls back to Manrope glyph by glyph
+        brand: ['var(--font-brand)', 'var(--font-sans)', 'sans-serif'],
       },
       borderRadius: { xl: '14px', '2xl': '18px', '3xl': '24px' },
       boxShadow: {

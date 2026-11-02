@@ -59,9 +59,15 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-8">
-      <header className="relative pr-20 pt-1 md:pr-0">
-        <Hand>с наступающим, {user?.firstName ?? 'друг'})</Hand>
-        <h1 className="glow-text mt-3 max-w-[15ch] font-display text-[34px] font-black leading-[1.02] tracking-[-0.035em] md:text-[44px]">Дари подарки в своём чате</h1>
+      <header className="relative pt-1">
+        {/* the wordmark from the bot avatar, as big as the screen allows */}
+        <div aria-label="Solik Gifts" className="brand-gradient font-brand text-[clamp(84px,27vw,150px)] font-extrabold leading-[0.86] tracking-[-0.02em]">
+          Solik
+          <br />
+          Gifts
+        </div>
+        <Hand className="mt-4">с наступающим, {user?.firstName ?? 'друг'})</Hand>
+        <h1 className="mt-3 max-w-[13ch] font-display text-[30px] font-extrabold leading-[1.1] tracking-[-0.02em] md:text-[36px]">Дари подарки в своём чате</h1>
       </header>
 
       {(dash.error || live.error) && <ErrorState error={(dash.error || live.error)!} retry={() => (dash.reload(), live.reload())} />}
@@ -69,7 +75,7 @@ export default function DashboardPage() {
       {/* the big number, then the small ones */}
       <section className="card relative overflow-hidden px-5 pb-5 pt-6">
         <div className="pointer-events-none absolute -right-10 -top-16 h-48 w-48 rounded-full bg-gold/20 blur-3xl" />
-        <div className="num glow-text font-display text-[56px] font-black leading-none tracking-[-0.04em]">{fmtNum(d?.giftsDelivered)}</div>
+        <div className="num glow-text font-display text-[56px] font-black leading-none tracking-[-0.02em]">{fmtNum(d?.giftsDelivered)}</div>
         <Hand className="mt-2 text-[24px]">{plural(d?.giftsDelivered ?? 0, 'подарок уже на руках', 'подарка уже на руках', 'подарков уже на руках')}</Hand>
         <div className="mt-5 grid grid-cols-3 border-t border-white/10 pt-4">
           <Mini value={fmtNum(liveCount)} label="идут сейчас" dot />

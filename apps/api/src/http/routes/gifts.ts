@@ -6,7 +6,7 @@ import { badRequest, conflict, notFound } from '../../lib/errors.js';
 import { prisma } from '../../lib/prisma.js';
 import { mainApi } from '../../telegram/registry.js';
 import { refreshBusinessConnection, syncOwnedGifts, disconnectBusiness } from '../../modules/business/service.js';
-import { chooseMethod, enqueueDelivery, markDeliveredManually, notifyOwnerManual } from '../../modules/gifts/delivery.js';
+import { BUSINESS_HELP, chooseMethod, enqueueDelivery, fundDelivery, markDeliveredManually, notifyOwnerManual } from '../../modules/gifts/delivery.js';
 import { nftProviders } from '../../modules/nft/providers.js';
 import { requireAuth, uid } from '../auth.js';
 import { usableBot } from '../ownership.js';
@@ -89,8 +89,9 @@ export async function giftRoutes(app: FastifyInstance) {
       const bot = await usableBot(uid(req), body.botId);
       const gift = await prisma.telegramGift.findUnique({ where: { id: body.giftId } });
       if (!gift) throw badRequest('Подарок не найден');
-      const { method, note } = chooseMethod({ kind: 'GIFT', gift, businessOwnedGiftId: null } as any);
-      if (bot.isPlatform && method !== 'MANUAL') throw badRequest('Ручная отправка подарков доступна через собственного бота (оплата с баланса бота)');
+      const chosen = chooseMethod({ kind: 'GIFT', gift, businessOwnedGiftId: null } as any);
+      const { method, note, businessConnectionId } = await fundDelivery(bot, uid(req), chosen);
+      if (bot.isPlatform && chosen.method === 'BOT_SEND_GIFT' && method === 'MANUAL') throw badRequest(`Чтобы отправить подарок через @${bot.username}, оплатите его Stars своего аккаунта. ${BUSINESS_HELP}`);
       const d = await prisma.giftDelivery.create({
         data: {
           idempotencyKey: `manual:${uid(req)}:${Date.now()}`,
@@ -99,6 +100,7 @@ export async function giftRoutes(app: FastifyInstance) {
           recipientTgId: BigInt(body.recipientTgId),
           recipientName: body.recipientName,
           method,
+          businessConnectionId,
           note,
           status: method === 'MANUAL' ? 'MANUAL_REQUIRED' : 'PENDING',
         },

@@ -1,4 +1,4 @@
-import type { ContestPrize, DeliveryMethod, GiftDelivery, TelegramGift } from '@prisma/client';
+import type { ContestPrize, DeliveryMethod, GiftDelivery, TelegramBot, TelegramGift } from '@prisma/client';
 import { audit } from '../../lib/audit.js';
 import { prisma } from '../../lib/prisma.js';
 import { TelegramError } from '../../telegram/client.js';
@@ -41,15 +41,36 @@ export function chooseMethod(prize: ContestPrize & { gift: TelegramGift | null }
   }
 }
 
+export const BUSINESS_HELP =
+  'Подключите бота в Telegram: Настройки → Telegram для бизнеса → Чат-боты, и включите «Управление подарками и звёздами». Тогда подарок оплатится Stars вашего аккаунта.';
+
+/**
+ * Who pays for a gift the bot buys. An own white-label bot pays from its own balance.
+ * The shared platform bot never spends platform Stars: it moves the owner's Stars from their
+ * Business account (if connected with the Stars right) and buys the gift with them.
+ */
+export async function fundDelivery(
+  bot: Pick<TelegramBot, 'id' | 'isPlatform'>,
+  ownerId: string | null,
+  chosen: { method: DeliveryMethod; note?: string },
+): Promise<{ method: DeliveryMethod; note?: string; businessConnectionId?: string }> {
+  if (chosen.method !== 'BOT_SEND_GIFT' || !bot.isPlatform) return chosen;
+  const conn = ownerId
+    ? await prisma.telegramBusinessConnection.findFirst({ where: { botId: bot.id, ownerId, isEnabled: true, canTransferStars: true }, orderBy: { updatedAt: 'desc' } })
+    : null;
+  if (conn) return { method: 'BUSINESS_STARS', businessConnectionId: conn.id };
+  return { method: 'MANUAL', note: BUSINESS_HELP };
+}
+
 export async function createDeliveriesForDraw(contestId: string, drawNumber: number) {
-  const contest = await prisma.contest.findUniqueOrThrow({ where: { id: contestId } });
+  const contest = await prisma.contest.findUniqueOrThrow({ where: { id: contestId }, include: { bot: true } });
   const winners = await prisma.contestWinner.findMany({
     where: { contestId, drawNumber, status: 'ACTIVE', prizeId: { not: null } },
     include: { prize: { include: { gift: true } } },
   });
   for (const w of winners) {
     const prize = w.prize!;
-    const { method, note } = chooseMethod(prize);
+    const { method, note, businessConnectionId } = await fundDelivery(contest.bot, contest.ownerId, chooseMethod(prize));
     const d = await prisma.giftDelivery.upsert({
       where: { idempotencyKey: `winner:${w.id}` },
       create: {
@@ -62,6 +83,7 @@ export async function createDeliveriesForDraw(contestId: string, drawNumber: num
         recipientTgId: w.tgUserId,
         recipientName: w.username ? `@${w.username}` : w.firstName,
         method,
+        businessConnectionId,
         status: method === 'MANUAL' ? 'MANUAL_REQUIRED' : 'PENDING',
         note,
       },
@@ -106,7 +128,7 @@ export async function processDelivery(deliveryId: string): Promise<GiftDelivery>
   try {
     switch (d.method) {
       case 'BOT_SEND_GIFT': {
-        const gift = prize?.gift;
+        const gift = prize?.gift ?? (d.giftId ? await prisma.telegramGift.findUnique({ where: { id: d.giftId } }) : null);
         if (!gift) throw new Error('Подарок не найден');
         if (gift.starCost) {
           const bal = await api.getMyStarBalance().catch(() => null);
@@ -115,6 +137,23 @@ export async function processDelivery(deliveryId: string): Promise<GiftDelivery>
           }
         }
         await api.sendGift(d.recipientTgId, gift.telegramGiftId, comment?.slice(0, 128));
+        break;
+      }
+      case 'BUSINESS_STARS': {
+        const gift = prize?.gift ?? (d.giftId ? await prisma.telegramGift.findUnique({ where: { id: d.giftId } }) : null);
+        if (!gift?.starCost) throw new Error('Подарок не найден или у него нет цены в Stars');
+        const conn = d.businessConnectionId ? await prisma.telegramBusinessConnection.findUnique({ where: { id: d.businessConnectionId } }) : null;
+        if (!conn?.isEnabled || !conn.canTransferStars) throw new Error(`Business-подключение отключено или без права на Stars. ${BUSINESS_HELP}`);
+        const bal = await api.getBusinessAccountStarBalance(conn.connectionId).catch(() => null);
+        if (bal && bal.amount < gift.starCost) throw new Error(`На аккаунте ${bal.amount} Stars, а подарок стоит ${gift.starCost}. Пополните Stars в Telegram.`);
+        await api.transferBusinessAccountStars(conn.connectionId, gift.starCost);
+        try {
+          await api.sendGift(d.recipientTgId, gift.telegramGiftId, comment?.slice(0, 128));
+        } catch (e) {
+          // Stars already moved: they stay on the bot balance, retry will not take them twice from the account
+          await prisma.giftDelivery.update({ where: { id: d.id }, data: { method: 'BOT_SEND_GIFT' } });
+          throw e;
+        }
         break;
       }
       case 'PREMIUM_GIFT': {

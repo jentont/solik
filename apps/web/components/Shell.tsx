@@ -146,7 +146,7 @@ const PILL = 132;
 const ICON = 58;
 const GAP = 4;
 const STEP = ICON + GAP;
-const SIDE = 3; // icons rendered on each side, enough to fill a phone width
+const SIDE = 2; // 2 + centre + 2 = every section once; swiping still wraps around forever
 
 function slotX(d: number) {
   if (d === 0) return 0;

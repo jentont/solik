@@ -124,6 +124,11 @@ function ManualDelivery({ gift, onClose }: { gift: Gift | null; onClose(): void 
             </option>
           ))}
         </Select>
+        {bots.data?.find((b) => b.id === (botId || own[0]?.id || bots.data?.[0]?.id))?.isPlatform && (
+          <p className="rounded-2xl border border-gold/30 bg-gold/[0.08] p-3.5 text-[14px] leading-snug text-muted">
+            Подарок оплатится <b className="text-gold">Stars вашего аккаунта</b> через Telegram для бизнеса. Подключите бота: Настройки → Telegram для бизнеса → Чат-боты, право «Управление подарками и звёздами».
+          </p>
+        )}
         <Input label="Telegram ID получателя" value={tgId} onChange={(e) => setTgId(e.target.value.replace(/\D/g, ''))} />
         <Input label="Имя / username (для истории)" value={name} onChange={(e) => setName(e.target.value)} />
         <Button className="w-full" loading={busy} disabled={!tgId} icon={<Send className="h-4 w-4" />} onClick={send}>

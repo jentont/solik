@@ -549,6 +549,7 @@ enum DeliveryStatus {
 enum DeliveryMethod {
   BOT_SEND_GIFT
   BUSINESS_TRANSFER
+  BUSINESS_STARS // regular gift bought by the bot with Stars moved from the owner's Business account
   PREMIUM_GIFT
   NFT_PROVIDER
   MANUAL
@@ -570,6 +571,8 @@ model GiftDelivery {
   recipientTgId  BigInt
   recipientName  String?
   method         DeliveryMethod
+  // BUSINESS_STARS: whose Business account pays
+  businessConnectionId String?
   status         DeliveryStatus  @default(PENDING)
   attempts       Int             @default(0)
   error          String?

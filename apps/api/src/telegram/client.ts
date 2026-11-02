@@ -223,6 +223,14 @@ export class TelegramApi {
     });
   }
 
+  /** Moves Stars from the connected Business account to the bot's own balance (needs can_transfer_stars). */
+  transferBusinessAccountStars(connectionId: string, starCount: number) {
+    return this.call<boolean>('transferBusinessAccountStars', { business_connection_id: connectionId, star_count: starCount });
+  }
+  getBusinessAccountStarBalance(connectionId: string) {
+    return this.call<{ amount: number }>('getBusinessAccountStarBalance', { business_connection_id: connectionId });
+  }
+
   getStickerSet(name: string) {
     return this.call<{ name: string; title: string; stickers: Array<{ emoji?: string; custom_emoji_id?: string; file_id: string }> }>('getStickerSet', { name });
   }

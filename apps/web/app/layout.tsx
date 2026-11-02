@@ -5,10 +5,10 @@ import { AuthProvider } from '@/lib/auth';
 import { Shell } from '@/components/Shell';
 import './globals.css';
 
-// Manrope for text and Cyrillic headings; Outfit (the «Solik Gifts» avatar face, Latin only) for the wordmark
+// Manrope for text, Montserrat Alternates Black for headings and buttons; Outfit (the «Solik Gifts» avatar face, Latin only) for the wordmark
 // and big numbers; Caveat for handwritten accents. Self-hosted so builds never depend on Google Fonts.
 const sans = localFont({ src: './fonts/Manrope.ttf', variable: '--font-sans', weight: '200 800', display: 'swap' });
-const display = localFont({ src: './fonts/Manrope.ttf', variable: '--font-display', weight: '200 800', display: 'swap' });
+const display = localFont({ src: './fonts/MontserratAlternates-Black.ttf', variable: '--font-display', weight: '900', display: 'swap' });
 const brand = localFont({ src: './fonts/Outfit.ttf', variable: '--font-brand', weight: '100 900', display: 'swap' });
 const hand = localFont({ src: './fonts/Caveat.woff', variable: '--font-hand', weight: '400 700', display: 'swap' });
 

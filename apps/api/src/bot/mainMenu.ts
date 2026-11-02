@@ -44,7 +44,7 @@ async function mainKeyboard(api: TelegramApi): Promise<TgInlineButton[][]> {
 async function sendWelcome(api: TelegramApi, chatId: number) {
   const rows = await mainKeyboard(api);
   const plain = rows.map((r) => r.map(({ icon_custom_emoji_id: _i, style: _s, ...b }) => b));
-  const cached = await redis().get('main:welcome_photo:winter2');
+  const cached = await redis().get('main:welcome_photo:winter3');
   const send = async (inline_keyboard: TgInlineButton[][]) => {
     if (cached) return api.sendPhoto(chatId, cached, WELCOME, { reply_markup: { inline_keyboard } });
     const data = await readFile(BANNER);
@@ -55,7 +55,7 @@ async function sendWelcome(api: TelegramApi, chatId: number) {
       reply_markup: { inline_keyboard },
     });
     const fileId = msg.photo?.at(-1)?.file_id;
-    if (fileId) await redis().set('main:welcome_photo:winter2', fileId);
+    if (fileId) await redis().set('main:welcome_photo:winter3', fileId);
     return msg;
   };
   try {

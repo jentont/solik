@@ -67,7 +67,10 @@ export default function DashboardPage() {
           Gifts
         </div>
         <Hand className="mt-4">с наступающим, {user?.firstName ?? 'друг'})</Hand>
-        <h1 className="mt-3 max-w-[13ch] font-display text-[30px] font-extrabold leading-[1.1] tracking-[-0.02em] md:text-[36px]">Дари подарки в своём чате</h1>
+        <h1 className="mt-3 max-w-[13ch] font-display text-[30px] font-extrabold leading-[1.1] tracking-[-0.02em] md:text-[36px]">
+          Дари подарки
+          <br />в своём чате
+        </h1>
       </header>
 
       {(dash.error || live.error) && <ErrorState error={(dash.error || live.error)!} retry={() => (dash.reload(), live.reload())} />}

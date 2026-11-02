@@ -174,7 +174,7 @@ function Wizard() {
             </Card>
           )}
 
-          {step === 6 && <PostStep title={title} setTitle={setTitle} post={post} setPost={setPost} prizeName={prizeName} winnersCount={winnersCount} endsAt={endsAt} channelName={bot?.channels.find((c: any) => c.id === target.channelId)?.title} autoAi={params.get('ai') === '1'} />}
+          {step === 6 && <PostStep title={title} setTitle={setTitle} post={post} setPost={setPost} prizeName={prizeName} giftId={prizes.find((p) => p.giftId)?.giftId ?? null} winnersCount={winnersCount} endsAt={endsAt} channelName={bot?.channels.find((c: any) => c.id === target.channelId)?.title} autoAi={params.get('ai') === '1'} />}
 
           {step === 7 && (
             <div className="grid gap-6 lg:grid-cols-2">
@@ -525,7 +525,7 @@ function AntiSpam({ config, set }: { config: Record<string, any>; set(k: string,
   );
 }
 
-function PostStep({ title, setTitle, post, setPost, prizeName, winnersCount, endsAt, channelName, autoAi }: any) {
+function PostStep({ title, setTitle, post, setPost, prizeName, giftId, winnersCount, endsAt, channelName, autoAi }: any) {
   const [aiOpen, setAiOpen] = useState(autoAi);
   const [imgOpen, setImgOpen] = useState(false);
   return (
@@ -548,7 +548,7 @@ function PostStep({ title, setTitle, post, setPost, prizeName, winnersCount, end
         <TelegramPreview text={post.text || `🎁 <b>${title || 'Конкурс'}</b>\n\nПриз: <b>${prizeName}</b>`} media={post.media} buttons={post.buttons.map((b: any) => [b])} vars={{ contest_name: title, prize_name: prizeName }} />
       </div>
       <AiTextModal open={aiOpen} onClose={() => setAiOpen(false)} defaults={{ title, prize: prizeName, winners: winnersCount, date: endsAt ? fmtDate(endsAt) : '', channel: channelName }} onApply={(text: string) => setPost({ ...post, text })} />
-      <AiImageModal open={imgOpen} onClose={() => setImgOpen(false)} defaults={{ title, prize: prizeName, date: endsAt ? fmtDate(endsAt) : '' }} onApply={(m: any) => setPost({ ...post, mediaId: m.mediaId, media: { url: m.url, kind: 'PHOTO' } })} />
+      <AiImageModal open={imgOpen} onClose={() => setImgOpen(false)} defaults={{ title, prize: prizeName, giftId, date: endsAt ? fmtDate(endsAt) : '' }} onApply={(m: any) => setPost({ ...post, mediaId: m.mediaId, media: { url: m.url, kind: 'PHOTO' } })} />
     </div>
   );
 }
@@ -622,7 +622,7 @@ function AiImageModal({ open, onClose, defaults, onApply }: any) {
   const gen = async () => {
     setBusy(true);
     try {
-      const job = await api('/api/ai/image', { body: { ...form, title: defaults.title.slice(0, 80), prize: (defaults.prize || 'Приз').slice(0, 60), date: defaults.date || undefined } });
+      const job = await api('/api/ai/image', { body: { ...form, title: defaults.title.slice(0, 80), prize: (defaults.prize || 'Приз').slice(0, 60), date: defaults.date || undefined, giftId: defaults.giftId ?? null } });
       setOut(await pollJob(job.id));
     } catch (e) {
       toast.error((e as Error).message);
@@ -642,7 +642,7 @@ function AiImageModal({ open, onClose, defaults, onApply }: any) {
         </Select>
         <Input label="Тема / сюжет" value={form.theme} onChange={(e) => setForm({ ...form, theme: e.target.value })} placeholder="Кот с горой корма, сундук с золотом…" />
       </div>
-      <Toggle checked={form.useAi} onChange={(v) => setForm({ ...form, useAi: v })} label="Генерировать фон через Gemini" hint="Выключено — фирменный градиентный шаблон" />
+      <Toggle checked={form.useAi} onChange={(v) => setForm({ ...form, useAi: v })} label="AI-иллюстрация (Gemini)" hint="Чистая картинка без текста — текст идёт в подпись поста. Выключено — фирменная карточка с настоящим подарком-призом" />
       <Toggle checked={form.usePlatformLogo} onChange={(v) => setForm({ ...form, usePlatformLogo: v })} label="Добавить логотип SOLIK" hint="Для White-Label обычно выключено" />
       <Button className="mt-3" loading={busy} onClick={gen} icon={<Sparkles className="h-4 w-4" />}>
         {out ? 'Перегенерировать' : 'Создать'}
@@ -651,6 +651,7 @@ function AiImageModal({ open, onClose, defaults, onApply }: any) {
         <div className="mt-4">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src={out.url} alt="" className="w-full rounded-xl" />
+          {out.note && <p className="mt-2 rounded-xl bg-warn/10 px-3 py-2 text-xs text-warn">{out.note}</p>}
           <Button className="mt-3 w-full" onClick={() => (onApply(out), onClose())}>
             Использовать
           </Button>

@@ -18,9 +18,9 @@ RUN cd apps/web && npm run build
 
 FROM node:22-bookworm-slim
 WORKDIR /usr/src/app
-ENV NODE_ENV=production NEXT_TELEMETRY_DISABLED=1 PORT=3000 DATA_DIR=/app/data
+ENV NODE_ENV=production NEXT_TELEMETRY_DISABLED=1 PORT=3000 DATA_DIR=/app/data FONTCONFIG_PATH=/etc/fonts
 RUN apt-get update \
-  && apt-get install -y --no-install-recommends openssl ca-certificates postgresql redis-server \
+  && apt-get install -y --no-install-recommends openssl ca-certificates postgresql redis-server fontconfig fonts-dejavu-core \
   && rm -rf /var/lib/apt/lists/* \
   && mkdir -p /app/data && chmod 777 /app/data
 COPY --from=build /usr/src/app/node_modules ./node_modules
@@ -28,6 +28,8 @@ COPY --from=build /usr/src/app/apps/api/dist ./apps/api/dist
 COPY --from=build /usr/src/app/apps/api/prisma ./apps/api/prisma
 COPY --from=build /usr/src/app/apps/api/package.json ./apps/api/package.json
 COPY --from=build /usr/src/app/apps/api/assets ./apps/api/assets
+# brand fonts for text in generated contest images (sharp/librsvg resolves them via fontconfig)
+RUN mkdir -p /usr/share/fonts/truetype/solik && cp apps/api/assets/fonts/*.ttf /usr/share/fonts/truetype/solik/ && fc-cache -f
 COPY --from=build /usr/src/app/data ./data
 # Next.js standalone server
 COPY --from=build /usr/src/app/apps/web/.next/standalone ./web

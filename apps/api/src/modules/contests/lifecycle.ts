@@ -61,7 +61,8 @@ export async function startContest(contestId: string, actorId: string | null, op
     if (contest.type === 'RANDOM' || contest.type === 'GIFTS' || contest.type === 'NFT') {
       buttons.push({ text: joinButtonText(contest), callback: `join:${contest.id}` });
     }
-    if (contest.type === 'STARS_AUCTION') {
+    // invoice mode only: in paid-messages mode the bid is the paid message in the chat itself
+    if (contest.type === 'STARS_AUCTION' && (contest.config as Record<string, unknown>)?.bidMode !== 'paid_messages') {
       const me = await api.getMe();
       buttons.push({ text: '⭐ Перебить ставку', url: `https://t.me/${me.username}?start=bid_${contest.id}` });
     }

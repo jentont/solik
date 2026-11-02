@@ -40,7 +40,7 @@ export class FallbackProvider implements AIProvider {
     this.imageModel = chain.find((p) => p.imageModel)?.imageModel ?? '';
   }
   async generatePost(input: ContestPostInput) {
-    return this.first((p) => p.generatePost(input));
+    return this.first((p) => p.generatePost(input), (p) => !!p.textModel || p.id === 'openrouter');
   }
   async generateImage(prompt: string) {
     return this.first((p) => p.generateImage(prompt), (p) => !!p.imageModel);
@@ -78,6 +78,10 @@ export async function getAIProvider(): Promise<AIProvider> {
         'X-Title': 'SOLIK',
       }),
     );
+  }
+  if ((want('pollinations') && env.POLLINATIONS_ENABLED) || env.AI_PROVIDER === 'pollinations') {
+    const { PollinationsProvider } = await import('./pollinations.js');
+    chain.push(new PollinationsProvider(env.POLLINATIONS_TOKEN, env.POLLINATIONS_MODEL));
   }
   if (!chain.length) throw new Error('Не задан ни один ключ AI (GEMINI_API_KEY, GROQ_API_KEY, OPENROUTER_API_KEY) — см. docs/AI_SETUP.md');
   return chain.length === 1 ? chain[0]! : new FallbackProvider(chain);

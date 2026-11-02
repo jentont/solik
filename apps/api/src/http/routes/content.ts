@@ -172,6 +172,7 @@ export async function contentRoutes(app: FastifyInstance) {
           useAi: z.boolean().default(true),
           logoMediaId: z.string().nullable().optional(),
           usePlatformLogo: z.boolean().default(false),
+          giftId: z.string().max(64).nullable().optional(),
         }),
         req.body,
       );

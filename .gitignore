@@ -10,3 +10,4 @@ uploads
 apps/api/prisma/*.db
 .claude/
 .idea/
+*.tsbuildinfo

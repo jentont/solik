@@ -32,7 +32,7 @@ const schema = z.object({
   ALLOW_DEV_LOGIN: bool,
 
   // auto: every configured provider in order Gemini → Groq → OpenRouter, falling through on errors/limits
-  AI_PROVIDER: z.enum(['auto', 'gemini', 'groq', 'openrouter', 'none']).default('auto'),
+  AI_PROVIDER: z.enum(['auto', 'gemini', 'groq', 'openrouter', 'pollinations', 'none']).default('auto'),
   GEMINI_API_KEY: z.string().default(''),
   GEMINI_TEXT_MODEL: z.string().default('gemini-2.5-flash'),
   GEMINI_IMAGE_MODEL: z.string().default('gemini-2.5-flash-image'),
@@ -41,6 +41,13 @@ const schema = z.object({
   OPENROUTER_API_KEY: z.string().default(''),
   // empty = pick a free model (":free") automatically
   OPENROUTER_MODEL: z.string().default(''),
+  // free images without a key (lower quality); off by default, the token removes the service watermark
+  POLLINATIONS_ENABLED: z
+    .string()
+    .optional()
+    .transform((v) => v === 'true' || v === '1'),
+  POLLINATIONS_TOKEN: z.string().default(''),
+  POLLINATIONS_MODEL: z.string().default('flux'),
 
   UPLOAD_DIR: z.string().default('./uploads'),
   BRAND_LOGO_PATH: z.string().default('./assets/logo.png'),

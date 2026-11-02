@@ -4,7 +4,7 @@ import { TelegramApi } from '../telegram/client.js';
 import { sendRich } from '../telegram/messenger.js';
 import { apiForBot } from '../telegram/registry.js';
 import type { TgCallbackQuery, TgMessage, TgUpdate } from '../telegram/types.js';
-import { renderTemplate } from '../templates/render.js';
+import { escapeHtml, renderTemplate } from '../templates/render.js';
 import { createBidInvoice, handleBidPayment, handleBidPreCheckout, handlePaidMessageBid } from '../modules/auction/service.js';
 import { handleChatActivity } from '../modules/activity/service.js';
 import { handleBusinessConnection } from '../modules/business/service.js';
@@ -51,6 +51,9 @@ export async function dispatchUpdate(bot: TelegramBot, u: TgUpdate) {
 
   if (msg.chat.type === 'private') {
     await trackBotUser(bot, msg);
+    // «Перебить ставку» deep link (t.me/<bot>?start=bid_<contestId>) works on every bot, the platform one included
+    const bid = (msg.text ?? '').trim().match(/^\/start bid_(\w+)$/);
+    if (bid && msg.from) return sendBidInvoice(api, msg.chat.id, bid[1]!, msg.from);
     return bot.isPlatform ? handleMainPrivate(api, msg) : handleWhiteLabelPrivate(api, bot, msg);
   }
 
@@ -80,8 +83,6 @@ async function trackBotUser(bot: TelegramBot, msg: TgMessage) {
 async function handleWhiteLabelPrivate(api: TelegramApi, bot: TelegramBot, msg: TgMessage) {
   const text = (msg.text ?? '').trim();
   const from = msg.from!;
-  const bidMatch = text.match(/^\/start bid_(\w+)$/);
-  if (bidMatch) return sendBidInvoice(api, msg.chat.id, bidMatch[1]!, from);
   if (!text.startsWith('/start') && !text.startsWith('/help')) return;
   const media = bot.welcomeMediaId ? await prisma.mediaFile.findUnique({ where: { id: bot.welcomeMediaId } }) : null;
   const html = renderTemplate(bot.welcomeText || `Привет, {first_name}! 👋\n\nЯ — ${bot.name}. Здесь проходят конкурсы и розыгрыши.`, {
@@ -93,18 +94,30 @@ async function handleWhiteLabelPrivate(api: TelegramApi, bot: TelegramBot, msg: 
   await sendRich(api, bot.id, msg.chat.id, { html, media, buttons });
 }
 
-async function sendBidInvoice(api: TelegramApi, chatId: number, contestId: string, from: NonNullable<TgMessage['from']>) {
+async function sendBidInvoice(api: TelegramApi, chatId: number, contestId: string, from: NonNullable<TgMessage['from']>, amount?: number) {
   const contest = await prisma.contest.findUnique({ where: { id: contestId }, include: { prizes: true } });
   if (!contest || contest.type !== 'STARS_AUCTION') return api.sendMessage(chatId, 'Конкурс не найден');
-  const res = await createBidInvoice(api, contest, from);
+  const res = await createBidInvoice(api, contest, from, amount);
   if (!res.ok) return api.sendMessage(chatId, `⚠️ ${res.reason}`);
-  return api.sendMessage(chatId, `⭐ Ставка <b>${res.amount} Stars</b> в «${contest.title}».\nСтавка засчитывается только после оплаты.`, {
-    reply_markup: { inline_keyboard: [[{ text: `Оплатить ${res.amount} ⭐`, url: res.link }]] },
+  const leader = contest.leaderName ? `Сейчас лидирует ${escapeHtml(contest.leaderName)} со ставкой ${contest.currentBid} ⭐.\n` : '';
+  return api.sendMessage(chatId, `⭐ <b>${escapeHtml(contest.title)}</b>\n${leader}Ваша ставка: <b>${res.amount} Stars</b>. Она засчитается сразу после оплаты.`, {
+    reply_markup: {
+      inline_keyboard: [
+        [{ text: `Оплатить ${res.amount} ⭐`, url: res.link }],
+        [5, 10].map((plus) => ({ text: `${res.amount + plus} ⭐`, callback_data: `bidamt:${contest.id}:${res.amount + plus}` })),
+      ],
+    },
   });
 }
 
 async function handleCallback(api: TelegramApi, bot: TelegramBot, q: TgCallbackQuery) {
   const data = q.data ?? '';
+  if (data.startsWith('bidamt:') && q.message) {
+    const [, contestId, amount] = data.split(':');
+    await api.answerCallbackQuery(q.id);
+    await sendBidInvoice(api, q.message.chat.id, contestId!, q.from, Number(amount));
+    return;
+  }
   if (data.startsWith('join:')) {
     const r = await joinContest(data.slice(5), q.from);
     return api.answerCallbackQuery(q.id, r.ok ? (r.already ? `Вы уже участвуете (#${r.position})` : `✅ Вы участвуете! Ваш номер #${r.position}`) : r.message, !r.ok);

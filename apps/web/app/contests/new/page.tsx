@@ -6,6 +6,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { Suspense, useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
 import { api, useApi } from '@/lib/api';
+import { useAuth } from '@/lib/auth';
 import { CONTEST_TYPES, cn, fmtDate } from '@/lib/format';
 import { GiftCard, type Gift } from '@/components/GiftCard';
 import { GiftSticker } from '@/components/GiftSticker';
@@ -161,7 +162,7 @@ function Wizard() {
           )}
 
           {step === 3 && <PrizeStep prizes={prizes} setPrizes={setPrizes} winnersCount={winnersCount} setWinners={setWinners} type={type} />}
-          {step === 4 && <ConditionsStep type={type} config={config} setConfig={setConfig} prizes={prizes} setPrizes={setPrizes} />}
+          {step === 4 && <ConditionsStep type={type} config={config} setConfig={setConfig} prizes={prizes} setPrizes={setPrizes} chatId={target.chatId} />}
 
           {step === 5 && (
             <Card className="max-w-xl space-y-4">
@@ -412,13 +413,14 @@ function PrizeStep({ prizes, setPrizes, winnersCount, setWinners, type }: any) {
   );
 }
 
-function ConditionsStep({ type, config, setConfig, prizes, setPrizes }: { type: string; config: Record<string, any>; setConfig(c: Record<string, any>): void; prizes: Prize[]; setPrizes(p: Prize[]): void }) {
+function ConditionsStep({ type, config, setConfig, prizes, setPrizes, chatId }: { type: string; config: Record<string, any>; setConfig(c: Record<string, any>): void; prizes: Prize[]; setPrizes(p: Prize[]): void; chatId?: string }) {
   const set = (k: string, v: unknown) => setConfig({ ...config, [k]: v });
   const num = (k: string, label: string, def: number, hint?: string, step = 1) => (
     <Input label={label} type="number" step={step} value={config[k] ?? def} onChange={(e) => set(k, Number(e.target.value))} hint={hint} />
   );
   return (
     <Card className="max-w-2xl space-y-4">
+      <WinFrom chatId={chatId} value={config.winFrom ?? ''} onChange={(v) => set('winFrom', v)} />
       {['RANDOM', 'GIFTS', 'NFT'].includes(type) && (
         <>
           <Input label="Текст кнопки участия" value={config.joinButtonText ?? 'Участвовать'} onChange={(e) => set('joinButtonText', e.target.value)} />
@@ -470,6 +472,7 @@ function ConditionsStep({ type, config, setConfig, prizes, setPrizes }: { type: 
       {type === 'MESSAGE_GIVEAWAY' && (
         <>
           <Select label="Режим" value={config.trigger ?? 'every_n_random'} onChange={(e) => set('trigger', e.target.value)}>
+            <option value="every_range">Раз в случайное число сообщений (например 10–35)</option>
             <option value="every_n_random">Каждые N сообщений — случайному активному</option>
             <option value="every_n_author">Каждое N-е сообщение — его автору</option>
             <option value="chance">Шанс на каждое сообщение (NFT за активность)</option>
@@ -478,6 +481,13 @@ function ConditionsStep({ type, config, setConfig, prizes, setPrizes }: { type: 
           </Select>
           {(config.trigger ?? 'every_n_random').startsWith('every_n') && num('everyMessages', 'N сообщений', 100)}
           {config.trigger === 'every_n_random' && num('windowMinutes', 'Окно активности, мин', 60)}
+          {config.trigger === 'every_range' && (
+            <div className="grid grid-cols-2 gap-3">
+              {num('rangeMin', 'От, сообщений', 10)}
+              {num('rangeMax', 'До, сообщений', 35)}
+              <p className="col-span-2 -mt-1 text-[14px] text-muted">Подарок получит автор сообщения, на котором выпало число. Следующее число бот выбирает заново — угадать нельзя.</p>
+            </div>
+          )}
           {config.trigger === 'chance' && (
             <>
               {num('chancePercent', 'Шанс подарка на одно сообщение, %', 0.9, 'Например, 0.9 — примерно один подарок на 110 сообщений', 0.1)}
@@ -514,6 +524,14 @@ function ConditionsStep({ type, config, setConfig, prizes, setPrizes }: { type: 
               <option value="hour">в час</option>
               <option value="day">в сутки</option>
               <option value="contest">за весь конкурс</option>
+            </Select>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            {num('starsLimit', 'Лимит Stars на подарки', 0, '0 — без лимита')}
+            <Select label="За какой срок" value={config.starsLimitWindow ?? 'hour'} onChange={(e) => set('starsLimitWindow', e.target.value)}>
+              <option value="hour">в час</option>
+              <option value="day">в сутки</option>
             </Select>
           </div>
 
@@ -750,6 +768,38 @@ function DropTable({ config, set, prizes, setPrizes }: { config: Record<string, 
           <p className="text-[14px] text-muted">Шанс считается среди подарков, которые ещё остались. Конкурс закончится, когда раздадут все {prizes.reduce((s, p) => s + (p.quantity || 1), 0)} шт.</p>
         </>
       )}
+    </div>
+  );
+}
+
+/** «Ты выиграл … от @кого»: the contest creator or any admin of the chat. */
+function WinFrom({ chatId, value, onChange }: { chatId?: string; value: string; onChange(v: string): void }) {
+  const { user } = useAuth();
+  const admins = useApi<{ id: string; username: string | null; name: string; status: string }[]>(chatId ? `/api/chats/${chatId}/admins` : null, [chatId]);
+  const list = (admins.data ?? []).filter((a) => a.username && a.username !== user?.username);
+  const known = !value || list.some((a) => a.username === value);
+  const [custom, setCustom] = useState(!known);
+  return (
+    <div className="space-y-2">
+      <Select
+        label="От кого поздравление"
+        value={custom ? '__custom' : value}
+        onChange={(e) => {
+          if (e.target.value === '__custom') return setCustom(true);
+          setCustom(false);
+          onChange(e.target.value);
+        }}
+        hint="Бот ответит победителю: «Поздравляю! Ты выиграл … от @ник. Подарок отправлен.»"
+      >
+        <option value="">{user?.username ? `Я (@${user.username})` : 'Я (создатель конкурса)'}</option>
+        {list.map((a) => (
+          <option key={a.id} value={a.username!}>
+            @{a.username} — {a.status === 'creator' ? 'владелец чата' : 'админ'}
+          </option>
+        ))}
+        <option value="__custom">Другой @username…</option>
+      </Select>
+      {custom && <Input placeholder="@username" value={value ? `@${value}` : ''} onChange={(e) => onChange(e.target.value.replace(/[^A-Za-z0-9_]/g, '').slice(0, 32))} />}
     </div>
   );
 }

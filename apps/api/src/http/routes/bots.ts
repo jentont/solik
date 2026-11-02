@@ -113,6 +113,17 @@ export async function botRoutes(app: FastifyInstance) {
   });
 
   // ── chats & channels of the current user ──
+  /** Admins of a connected chat, to pick who the congratulation is «from». */
+  app.get<{ Params: { id: string } }>('/api/chats/:id/admins', async (req) => {
+    const chat = await ownChat(uid(req), req.params.id);
+    const bot = await prisma.telegramBot.findUniqueOrThrow({ where: { id: chat.botId } });
+    const { apiForBot } = await import('../../telegram/registry.js');
+    const admins = await apiForBot(bot).getChatAdministrators(chat.chatId).catch(() => []);
+    return admins
+      .filter((a) => !a.user.is_bot)
+      .map((a) => ({ id: String(a.user.id), username: a.user.username ?? null, name: [a.user.first_name, a.user.last_name].filter(Boolean).join(' '), status: a.status }));
+  });
+
   app.get('/api/chats', async (req) => {
     const userId = uid(req);
     const scope = { OR: [{ ownerId: userId }, { bot: { ownerId: userId } }] };

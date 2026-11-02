@@ -24,6 +24,12 @@ function joinButtonText(c: Contest) {
 }
 
 /** Publishes the contest post and activates it (or schedules it for startsAt). */
+/** Username shown as the giver («Ты выиграл … от @admin»), from contest config `winFrom`. */
+export function winFrom(contest: Pick<Contest, 'config'>): string | null {
+  const v = String(((contest.config ?? {}) as Record<string, unknown>).winFrom ?? '').trim().replace(/^@/, '');
+  return /^[A-Za-z0-9_]{3,32}$/.test(v) ? `@${v}` : null;
+}
+
 export async function startContest(contestId: string, actorId: string | null, opts: { force?: boolean } = {}) {
   const contest = (await prisma.contest.findUniqueOrThrow({
     where: { id: contestId },
@@ -145,7 +151,7 @@ export async function announceResults(contestId: string, drawNumber: number, opt
     : 'Нет подходящих участников';
 
   const owner = contest.ownerId ? await prisma.user.findUnique({ where: { id: contest.ownerId } }) : null;
-  const ownerName = owner?.username ? `@${owner.username}` : owner?.firstName ?? '';
+  const ownerName = winFrom(contest) ?? (owner?.username ? `@${owner.username}` : owner?.firstName ?? '');
 
   // SMS counters / comment contests: reply directly to each winner's message
   if (contest.type === 'SMS_COUNTER' && contest.targetChatTgId) {

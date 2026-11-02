@@ -35,6 +35,7 @@ const ALTERNATIVES: Record<string, string[]> = {
   '👑': ['👑', '🏆', '⭐'],
   '⭐': ['⭐', '🌟', '✨'],
   '❄': ['❄', '⛄', '☃'],
+  '✅': ['✅', '✔', '☑', '⭐'],
 };
 
 /** `[[e:🎁]]` in a default template = a premium emoji from the pack for that character. */

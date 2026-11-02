@@ -18,9 +18,9 @@ export const DEFAULT_TEMPLATES: Record<TemplateKey, string> = {
   AUCTION_FINISHED: '[[e:🏆]] <b>Ивент завершён!</b>\n\nПобедитель: {winner_username}\nПриз: <b>{prize_name}</b>',
   AUCTION_WARNING: '[[e:⏳]] <b>Внимание!</b>\n\nДо окончания аукциона осталось {remaining_time}!\nТекущий лидер: {leader}\nУспейте перебить!',
   AUCTION_COUNTDOWN: '[[e:⏳]] Ивент завершается! Отсчёт: {remaining_time}...',
-  INSTANT_WIN: '[[e:🎉]] <b>Поздравляю!</b>\nТы выиграл <b>{prize_name}</b> от {owner_username}\nПодарок отправлен.',
-  CHANCE_WIN:
-    '[[e:🎁]] {winner_username} получил <b>{prize_name}</b> за активность в чате!\n\nШанс был: {chance}%\nОсталось подарков на сегодня: {remaining_slots}',
+  INSTANT_WIN: '[[e:🎉]] <b>Поздравляю!</b>\n[[e:🎁]] Ты выиграл <b>{prize_name}</b> от {owner_username}\n[[e:✅]] Подарок отправлен.',
+  // same look as INSTANT_WIN; {chance} and {remaining_slots} are still available
+  CHANCE_WIN: '[[e:🎉]] <b>Поздравляю!</b>\n[[e:🎁]] Ты выиграл <b>{prize_name}</b> от {owner_username}\n[[e:✅]] Подарок отправлен.',
   DICE_WIN: '[[e:🎉]] <b>777!</b>\n{winner_username} выбил три семёрки и выиграл <b>{prize_name}</b>!',
   NOTIFICATION: '{contest_name}: {remaining_time}',
 };

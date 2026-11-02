@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { decideRegistration, parseSmsCommand } from '../src/modules/sms/parser.js';
 import { selectWinners, type Candidate } from '../src/modules/winners/select.js';
-import { pickWeighted, prizeSlots } from '../src/modules/winners/engine.js';
+import { pickWeighted, prizeSlots, prizeStars } from '../src/modules/winners/engine.js';
+import { winFrom } from '../src/modules/contests/lifecycle.js';
 import { dropCustomEmoji } from '../src/telegram/emojiPack.js';
 import { minNextBid, validateBid } from '../src/modules/auction/service.js';
 import { messageChance, perUserSince, rollChance, spamReason, startOfDay } from '../src/modules/activity/service.js';
@@ -151,6 +152,17 @@ describe('activity anti-spam and chance', () => {
   });
   it('rejected premium emoji are dropped, not replaced with plain ones', () => {
     expect(dropCustomEmoji('<tg-emoji emoji-id="123456">🔥</tg-emoji> <b>Перебито!</b>')).toBe('<b>Перебито!</b>');
+  });
+  it('prize cost in Stars for the budget', () => {
+    expect(prizeStars({ kind: 'GIFT', gift: { starCost: 50 } } as any)).toBe(50);
+    expect(prizeStars({ kind: 'STARS', starsAmount: 100 } as any)).toBe(100);
+    expect(prizeStars(null)).toBe(0);
+  });
+  it('congratulation «from» uses the picked admin', () => {
+    expect(winFrom({ config: { winFrom: 'nudick' } } as any)).toBe('@nudick');
+    expect(winFrom({ config: { winFrom: '@nudick' } } as any)).toBe('@nudick');
+    expect(winFrom({ config: { winFrom: 'bad name!' } } as any)).toBeNull();
+    expect(winFrom({ config: {} } as any)).toBeNull();
   });
   it('day boundary honours the timezone (MSK)', () => {
     const d = startOfDay(new Date('2026-11-02T22:30:00Z'), 180); // 01:30 MSK on Nov 3

@@ -2,12 +2,13 @@ import { randomInt } from 'node:crypto';
 import type { Contest, TelegramBot, TemplateKey } from '@prisma/client';
 import { sha256 } from '../../lib/crypto.js';
 import { prisma } from '../../lib/prisma.js';
+import { redis } from '../../lib/redis.js';
 import { securePick } from '../../lib/rng.js';
 import type { TelegramApi } from '../../telegram/client.js';
 import { sendTemplate } from '../../telegram/messenger.js';
 import type { TgMessage } from '../../telegram/types.js';
 import { mention, type TemplateVars } from '../../templates/render.js';
-import { prizeTitle } from '../contests/lifecycle.js';
+import { prizeTitle, winFrom } from '../contests/lifecycle.js';
 import { createDeliveriesForDraw } from '../gifts/delivery.js';
 import { isChatAdmin } from '../chats/access.js';
 import { threadOf } from '../sms/service.js';
@@ -21,7 +22,13 @@ export interface ActivityConfig {
   countAdmins: boolean;
   ignoreOwner: boolean;
   // MESSAGE_GIVEAWAY triggers
-  trigger: 'every_n_random' | 'every_n_author' | 'first_message' | 'threshold' | 'chance';
+  trigger: 'every_n_random' | 'every_n_author' | 'every_range' | 'first_message' | 'threshold' | 'chance';
+  // every_range: the next gift drops after a random number of messages between rangeMin and rangeMax
+  rangeMin: number;
+  rangeMax: number;
+  // Stars the gifts may cost per window (0 = no limit)
+  starsLimit: number;
+  starsLimitWindow: 'hour' | 'day';
   everyMessages: number;
   threshold: number;
   windowMinutes: number;
@@ -60,6 +67,10 @@ export function activityConfig(c: Pick<Contest, 'config'>): ActivityConfig {
     perUserLimit: Math.max(0, Number(cfg.perUserLimit ?? 1)),
     perUserWindow: cfg.perUserWindow === 'hour' || cfg.perUserWindow === 'day' ? cfg.perUserWindow : 'contest',
     weightedPrizes: Boolean(cfg.weightedPrizes ?? false),
+    rangeMin: Math.max(1, Number(cfg.rangeMin ?? 10)),
+    rangeMax: Math.max(Math.max(1, Number(cfg.rangeMin ?? 10)), Number(cfg.rangeMax ?? 35)),
+    starsLimit: Math.max(0, Number(cfg.starsLimit ?? 0)),
+    starsLimitWindow: cfg.starsLimitWindow === 'day' ? 'day' : 'hour',
     tzOffsetMinutes: cfg.tzOffsetMinutes ?? 180,
   };
 }
@@ -132,7 +143,8 @@ export async function awardWithReply(
       user_id: String(candidate.tgUserId),
       prize_name: prize?.title ?? prizeTitle(await prisma.contestPrize.findMany({ where: { contestId: contest.id } })),
       gift_name: prize?.title,
-      owner_username: owner?.username ? `@${owner.username}` : owner?.firstName ?? '',
+      // «от кого» in the congratulation: an admin picked in the contest settings, else the contest owner
+      owner_username: winFrom(contest) ?? (owner?.username ? `@${owner.username}` : owner?.firstName ?? ''),
       contest_name: contest.title,
       chat_name: msg.chat.title,
       ...extra,
@@ -201,7 +213,14 @@ export async function handleChatActivity(api: TelegramApi, bot: TelegramBot, msg
     });
     const self: Candidate = { tgUserId, username: from.username, firstName: from.first_name, participantId: participant.id, score: participant.score };
     const since = perUserSince(cfg);
-    const award: InstantOptions = { perUserLimit: cfg.perUserLimit, perUserSince: since, weighted: cfg.weightedPrizes };
+    const award: InstantOptions = {
+      perUserLimit: cfg.perUserLimit,
+      perUserSince: since,
+      weighted: cfg.weightedPrizes,
+      ...(cfg.starsLimit > 0
+        ? { starsLimit: cfg.starsLimit, starsSince: cfg.starsLimitWindow === 'day' ? startOfDay(new Date(), cfg.tzOffsetMinutes) : new Date(Date.now() - 3600_000) }
+        : {}),
+    };
 
     switch (cfg.trigger) {
       case 'chance': {
@@ -221,6 +240,20 @@ export async function handleChatActivity(api: TelegramApi, bot: TelegramBot, msg
           { chance: String(Math.round(chance * 1000) / 1000).replace('.', ','), remaining_slots: cfg.dailyLimit - today - 1 },
           award,
         );
+        break;
+      }
+      case 'every_range': {
+        // the drop point is hidden: a random count in [rangeMin, rangeMax] after the previous drop
+        const key = `drop:next:${contest.id}`;
+        let next = Number(await redis().get(key));
+        if (!next || next < messageCounter) {
+          next = messageCounter - 1 + randomInt(cfg.rangeMin, cfg.rangeMax + 1);
+          await redis().set(key, String(next), 'EX', 30 * 24 * 3600);
+        }
+        if (messageCounter >= next) {
+          await redis().set(key, String(messageCounter + randomInt(cfg.rangeMin, cfg.rangeMax + 1)), 'EX', 30 * 24 * 3600);
+          await awardWithReply(api, contest, self, 'every_range', msg, 'INSTANT_WIN', {}, award);
+        }
         break;
       }
       case 'first_message':

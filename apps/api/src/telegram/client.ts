@@ -136,6 +136,9 @@ export class TelegramApi {
   getChatMember(chatId: number | bigint | string, userId: number | bigint) {
     return this.call<TgChatMember>('getChatMember', { chat_id: chatId, user_id: userId });
   }
+  getChatAdministrators(chatId: number | bigint | string) {
+    return this.call<TgChatMember[]>('getChatAdministrators', { chat_id: chatId });
+  }
   getChatMemberCount(chatId: number | bigint) {
     return this.call<number>('getChatMemberCount', { chat_id: chatId });
   }

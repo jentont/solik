@@ -60,6 +60,16 @@ export interface InstantOptions {
   perUserSince?: Date | null;
   // pick the prize by ContestPrize.weight among prizes still in stock instead of by place
   weighted?: boolean;
+  // budget: Stars the awarded prizes may cost since `starsSince`
+  starsLimit?: number;
+  starsSince?: Date;
+}
+
+/** What a prize costs the owner in Stars (gift price or Stars amount). */
+export function prizeStars(p: (ContestPrize & { gift?: { starCost: number | null } | null }) | null): number {
+  if (!p) return 0;
+  if (p.kind === 'STARS') return p.starsAmount ?? 0;
+  return p.gift?.starCost ?? 0;
 }
 
 /**
@@ -79,9 +89,9 @@ export async function awardInstantWinner(contestId: string, c: Candidate, reason
       });
       if (won >= limit) return null;
     }
-    const prizes = await tx.contestPrize.findMany({ where: { contestId } });
+    const prizes = await tx.contestPrize.findMany({ where: { contestId }, include: { gift: { select: { starCost: true } } } });
     const drawNumber = locked.drawsCount + 1;
-    let prize: ContestPrize | null;
+    let prize: (typeof prizes)[number] | null;
     let outOfStock = false;
     if (opts.weighted) {
       const given = await tx.contestWinner.groupBy({ by: ['prizeId'], where: { contestId, status: 'ACTIVE', prizeId: { not: null } }, _count: true });
@@ -91,7 +101,16 @@ export async function awardInstantWinner(contestId: string, c: Candidate, reason
       if (!prize) return null; // nothing left to drop
       outOfStock = inStock.filter((p) => (p.weight ?? 0) > 0).every((p) => (used.get(p.id) ?? 0) + (p.id === prize!.id ? 1 : 0) >= Math.max(1, p.quantity));
     } else {
-      prize = prizeSlots(prizes, locked.winnersCount)[drawNumber - 1] ?? null;
+      prize = (prizeSlots(prizes, locked.winnersCount)[drawNumber - 1] as (typeof prizes)[number] | null) ?? null;
+    }
+    if (opts.starsLimit && opts.starsSince) {
+      const recent = await tx.contestWinner.findMany({
+        where: { contestId, status: 'ACTIVE', createdAt: { gte: opts.starsSince }, prizeId: { not: null } },
+        select: { prizeId: true },
+      });
+      const byId = new Map(prizes.map((p) => [p.id, p]));
+      const spent = recent.reduce((s, r) => s + prizeStars(byId.get(r.prizeId!) ?? null), 0);
+      if (spent + prizeStars(prize) > opts.starsLimit) return null; // budget for this hour/day is used up
     }
     const winner = await tx.contestWinner.create({
       data: {

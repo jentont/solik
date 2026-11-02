@@ -11,7 +11,7 @@ import { prizeTitle } from '../contests/lifecycle.js';
 import { createDeliveriesForDraw } from '../gifts/delivery.js';
 import { isChatAdmin } from '../chats/access.js';
 import { threadOf } from '../sms/service.js';
-import { awardInstantWinner } from '../winners/engine.js';
+import { awardInstantWinner, type InstantOptions } from '../winners/engine.js';
 import type { Candidate } from '../winners/select.js';
 
 export interface ActivityConfig {
@@ -26,7 +26,17 @@ export interface ActivityConfig {
   threshold: number;
   windowMinutes: number;
   chancePercent: number; // chance mode: probability per counted message, e.g. 0.9
-  dailyLimit: number; // chance mode: max prizes per day
+  dailyLimit: number; // chance mode: max prizes per day for the whole chat
+  // only messages paid with Stars (chats with paid messages enabled) count
+  paidOnly: boolean;
+  minPaidStars: number;
+  // chance grows with the price: a message paid N× the minimum gets N× the chance (capped at 100 %)
+  starsBoost: boolean;
+  // prizes one person may win per window; 0 = unlimited
+  perUserLimit: number;
+  perUserWindow: 'hour' | 'day' | 'contest';
+  // pick prizes by their weight (ContestPrize.weight) instead of in order
+  weightedPrizes: boolean;
   tzOffsetMinutes: number; // day boundary for dailyLimit (default MSK)
 }
 
@@ -44,6 +54,12 @@ export function activityConfig(c: Pick<Contest, 'config'>): ActivityConfig {
     windowMinutes: cfg.windowMinutes ?? 60,
     chancePercent: Math.min(100, Math.max(0.001, Number(cfg.chancePercent ?? 1))),
     dailyLimit: Math.max(1, cfg.dailyLimit ?? 100),
+    paidOnly: Boolean(cfg.paidOnly ?? false),
+    minPaidStars: Math.max(1, Number(cfg.minPaidStars ?? 1)),
+    starsBoost: Boolean(cfg.starsBoost ?? false),
+    perUserLimit: Math.max(0, Number(cfg.perUserLimit ?? 1)),
+    perUserWindow: cfg.perUserWindow === 'hour' || cfg.perUserWindow === 'day' ? cfg.perUserWindow : 'contest',
+    weightedPrizes: Boolean(cfg.weightedPrizes ?? false),
     tzOffsetMinutes: cfg.tzOffsetMinutes ?? 180,
   };
 }
@@ -66,6 +82,19 @@ export function rollChance(percent: number): boolean {
   return randomInt(1_000_000) < Math.round(percent * 10_000);
 }
 
+/** Chance for one message: base chance, multiplied by how many «minimum prices» were paid. */
+export function messageChance(cfg: Pick<ActivityConfig, 'chancePercent' | 'starsBoost' | 'minPaidStars'>, paidStars: number): number {
+  if (!cfg.starsBoost || paidStars <= 0) return cfg.chancePercent;
+  return Math.min(100, cfg.chancePercent * Math.max(1, paidStars / cfg.minPaidStars));
+}
+
+/** Start of the per-user limit window. */
+export function perUserSince(cfg: Pick<ActivityConfig, 'perUserWindow' | 'tzOffsetMinutes'>, now = new Date()): Date | null {
+  if (cfg.perUserWindow === 'hour') return new Date(now.getTime() - 3600_000);
+  if (cfg.perUserWindow === 'day') return startOfDay(now, cfg.tzOffsetMinutes);
+  return null;
+}
+
 export function startOfDay(now: Date, tzOffsetMinutes: number): Date {
   const shifted = new Date(now.getTime() + tzOffsetMinutes * 60_000);
   shifted.setUTCHours(0, 0, 0, 0);
@@ -84,8 +113,9 @@ export async function awardWithReply(
   msg: TgMessage,
   key: TemplateKey = 'INSTANT_WIN',
   extra: TemplateVars = {},
+  opts: InstantOptions = {},
 ) {
-  const res = await awardInstantWinner(contest.id, candidate, reason);
+  const res = await awardInstantWinner(contest.id, candidate, reason, opts);
   if (!res) return null;
   const prize = res.winner.prizeId ? await prisma.contestPrize.findUnique({ where: { id: res.winner.prizeId } }) : null;
   const owner = await prisma.user.findUnique({ where: { id: contest.ownerId } });
@@ -150,8 +180,12 @@ export async function handleChatActivity(api: TelegramApi, bot: TelegramBot, msg
       continue;
     }
 
+    const paid = msg.paid_star_count ?? 0;
+    const paidRound = contest.type === 'MESSAGE_GIVEAWAY' && cfg.paidOnly;
+    if (paidRound && paid < cfg.minPaidStars) continue; // free (or too cheap) messages don't take part
     const prev = await prisma.contestParticipant.findUnique({ where: { contestId_tgUserId: { contestId: contest.id, tgUserId } } });
-    if (spamReason(cfg, text, prev)) continue;
+    // a paid message is its own anti-spam: no length / interval / duplicate filter
+    if (!paidRound && spamReason(cfg, text, prev)) continue;
     const textHash = sha256(text.trim().toLowerCase());
     const participant = await prisma.contestParticipant.upsert({
       where: { contestId_tgUserId: { contestId: contest.id, tgUserId } },
@@ -166,36 +200,51 @@ export async function handleChatActivity(api: TelegramApi, bot: TelegramBot, msg
       select: { messageCounter: true },
     });
     const self: Candidate = { tgUserId, username: from.username, firstName: from.first_name, participantId: participant.id, score: participant.score };
+    const since = perUserSince(cfg);
+    const award: InstantOptions = { perUserLimit: cfg.perUserLimit, perUserSince: since, weighted: cfg.weightedPrizes };
 
     switch (cfg.trigger) {
       case 'chance': {
-        if (!rollChance(cfg.chancePercent)) break;
+        const chance = messageChance(cfg, paid);
+        if (!rollChance(chance)) break;
         const today = await prisma.contestWinner.count({
           where: { contestId: contest.id, status: 'ACTIVE', createdAt: { gte: startOfDay(new Date(), cfg.tzOffsetMinutes) } },
         });
         if (today >= cfg.dailyLimit) break;
-        await awardWithReply(api, contest, self, 'chance', msg, 'CHANCE_WIN', {
-          chance: String(cfg.chancePercent).replace('.', ','),
-          remaining_slots: cfg.dailyLimit - today - 1,
-        });
+        await awardWithReply(
+          api,
+          contest,
+          self,
+          'chance',
+          msg,
+          'CHANCE_WIN',
+          { chance: String(Math.round(chance * 1000) / 1000).replace('.', ','), remaining_slots: cfg.dailyLimit - today - 1 },
+          award,
+        );
         break;
       }
       case 'first_message':
-        if (messageCounter === 1) await awardWithReply(api, contest, self, 'first_message', msg);
+        if (messageCounter === 1) await awardWithReply(api, contest, self, 'first_message', msg, 'INSTANT_WIN', {}, award);
         break;
       case 'threshold':
-        if (participant.score === cfg.threshold) await awardWithReply(api, contest, self, 'threshold', msg);
+        if (participant.score === cfg.threshold) await awardWithReply(api, contest, self, 'threshold', msg, 'INSTANT_WIN', {}, award);
         break;
       case 'every_n_author':
-        if (messageCounter % cfg.everyMessages === 0) await awardWithReply(api, contest, self, 'every_n_author', msg);
+        if (messageCounter % cfg.everyMessages === 0) await awardWithReply(api, contest, self, 'every_n_author', msg, 'INSTANT_WIN', {}, award);
         break;
       case 'every_n_random':
       default:
         if (messageCounter % cfg.everyMessages === 0) {
           const since = new Date(Date.now() - cfg.windowMinutes * 60_000);
           const active = await prisma.contestParticipant.findMany({ where: { contestId: contest.id, lastMessageAt: { gte: since }, isEligible: true } });
-          const already = new Set((await prisma.contestWinner.findMany({ where: { contestId: contest.id, status: 'ACTIVE' } })).map((w) => String(w.tgUserId)));
-          const [pick] = securePick(active.filter((a) => !already.has(String(a.tgUserId))), 1);
+          // people who already reached their win limit in the current window can't be picked
+          const wins = await prisma.contestWinner.groupBy({
+            by: ['tgUserId'],
+            where: { contestId: contest.id, status: 'ACTIVE', ...(since ? { createdAt: { gte: since } } : {}) },
+            _count: true,
+          });
+          const capped = new Set(wins.filter((w) => cfg.perUserLimit > 0 && w._count >= cfg.perUserLimit).map((w) => String(w.tgUserId)));
+          const [pick] = securePick(active.filter((a) => !capped.has(String(a.tgUserId))), 1);
           if (pick) {
             await awardWithReply(
               api,
@@ -205,6 +254,7 @@ export async function handleChatActivity(api: TelegramApi, bot: TelegramBot, msg
               msg,
               'CHANCE_WIN',
               { chance: (100 / Math.max(1, active.length)).toFixed(1).replace('.', ','), remaining_slots: Math.max(0, contest.winnersCount - contest.drawsCount - 1) },
+              award,
             );
           }
         }

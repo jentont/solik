@@ -33,7 +33,13 @@ export async function ensureUser(u: TgUser) {
       languageCode: u.language_code,
       role: platformOwnerIds.has(String(u.id)) ? 'OWNER' : 'USER',
     },
-    update: { username: u.username, firstName: u.first_name, lastName: u.last_name },
+    update: {
+      username: u.username,
+      firstName: u.first_name,
+      lastName: u.last_name,
+      // owners listed in PLATFORM_OWNER_IDS get the role even if they used the bot before it was set
+      ...(platformOwnerIds.has(String(u.id)) ? { role: 'OWNER' as const } : {}),
+    },
   });
 }
 

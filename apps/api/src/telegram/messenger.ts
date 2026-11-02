@@ -4,7 +4,8 @@ import type { MediaFile, TemplateKey } from '@prisma/client';
 import { env } from '../config/env.js';
 import { prisma } from '../lib/prisma.js';
 import { DEFAULT_TEMPLATES } from '../templates/defaults.js';
-import { renderTemplate, stripCustomEmoji, type TemplateVars } from '../templates/render.js';
+import { renderTemplate, type TemplateVars } from '../templates/render.js';
+import { dropCustomEmoji, PACK_TOKEN, resolvePackEmoji } from './emojiPack.js';
 import { TelegramApi, TelegramError, type SendOptions } from './client.js';
 import type { TgInlineButton, TgMessage } from './types.js';
 
@@ -82,7 +83,7 @@ export interface RichMessage {
 
 /**
  * Sends a rendered message. If Telegram rejects premium emoji (bots without Fragment
- * usernames can't use custom emoji in some contexts), retries with fallback characters.
+ * usernames can't use custom emoji in some contexts), retries without them.
  */
 export async function sendRich(api: TelegramApi, botId: string, chatId: number | bigint, msg: RichMessage, opts: SendOptions = {}) {
   const reply_markup = buildKeyboard(msg.buttons) ?? opts.reply_markup;
@@ -90,11 +91,13 @@ export async function sendRich(api: TelegramApi, botId: string, chatId: number |
     msg.media
       ? sendWithMedia(api, botId, chatId, msg.media, html.slice(0, 1024), { ...opts, reply_markup })
       : api.sendMessage(chatId, html.slice(0, 4096), { link_preview_options: { is_disabled: true }, ...opts, reply_markup });
+  const html = await resolvePackEmoji(api, msg.html).catch(() => msg.html.replace(PACK_TOKEN, ''));
   try {
-    return await attempt(msg.html);
+    return await attempt(html);
   } catch (e) {
-    if (e instanceof TelegramError && e.code === 400 && msg.html.includes('<tg-emoji') && e.isCustomEmojiRejected) {
-      return attempt(stripCustomEmoji(msg.html));
+    // no plain emoji as a fallback: the message goes out clean
+    if (e instanceof TelegramError && e.code === 400 && html.includes('<tg-emoji') && e.isCustomEmojiRejected) {
+      return attempt(dropCustomEmoji(html));
     }
     throw e;
   }

@@ -1,3 +1,4 @@
+import { randomInt } from 'node:crypto';
 import type { Contest, ContestPrize, ContestWinner } from '@prisma/client';
 import { audit, contestEvent } from '../../lib/audit.js';
 import { conflict, notFound } from '../../lib/errors.js';
@@ -41,20 +42,57 @@ export function prizeSlots(prizes: ContestPrize[], winnersCount: number): (Conte
   return slots;
 }
 
+/** Weighted random pick (crypto RNG). Items with weight <= 0 never win. */
+export function pickWeighted<T>(items: T[], weightOf: (t: T) => number): T | null {
+  const total = items.reduce((s, t) => s + Math.max(0, weightOf(t)), 0);
+  if (total <= 0) return null;
+  let r = randomInt(total);
+  for (const t of items) {
+    r -= Math.max(0, weightOf(t));
+    if (r < 0) return t;
+  }
+  return null;
+}
+
+export interface InstantOptions {
+  // how many prizes one person may win: within `perUserSince` (null = whole contest)
+  perUserLimit?: number;
+  perUserSince?: Date | null;
+  // pick the prize by ContestPrize.weight among prizes still in stock instead of by place
+  weighted?: boolean;
+}
+
 /**
  * Instant win for streaming modes (message giveaway triggers, first comment).
- * Each award is its own draw; stops once `winnersCount` awards were made.
+ * Each award is its own draw; stops once `winnersCount` awards were made
+ * (or, in weighted mode, when every prize is out of stock).
  */
-export async function awardInstantWinner(contestId: string, c: Candidate, reason: string) {
+export async function awardInstantWinner(contestId: string, c: Candidate, reason: string, opts: InstantOptions = {}) {
   const res = await prisma.$transaction(async (tx) => {
     const [locked] = await tx.$queryRaw<{ status: string; drawsCount: number; winnersCount: number }[]>`
       SELECT status, "drawsCount", "winnersCount" FROM "Contest" WHERE id = ${contestId} FOR UPDATE`;
     if (!locked || locked.status !== 'ACTIVE' || locked.drawsCount >= locked.winnersCount) return null;
-    const dup = await tx.contestWinner.findFirst({ where: { contestId, tgUserId: c.tgUserId, status: 'ACTIVE' } });
-    if (dup) return null; // one prize per user
+    const limit = opts.perUserLimit ?? 1; // 0 = unlimited
+    if (limit > 0) {
+      const won = await tx.contestWinner.count({
+        where: { contestId, tgUserId: c.tgUserId, status: 'ACTIVE', ...(opts.perUserSince ? { createdAt: { gte: opts.perUserSince } } : {}) },
+      });
+      if (won >= limit) return null;
+    }
     const prizes = await tx.contestPrize.findMany({ where: { contestId } });
     const drawNumber = locked.drawsCount + 1;
-    const prize = prizeSlots(prizes, locked.winnersCount)[drawNumber - 1] ?? null;
+    let prize: ContestPrize | null;
+    let outOfStock = false;
+    if (opts.weighted) {
+      const given = await tx.contestWinner.groupBy({ by: ['prizeId'], where: { contestId, status: 'ACTIVE', prizeId: { not: null } }, _count: true });
+      const used = new Map(given.map((g) => [g.prizeId, g._count]));
+      const inStock = prizes.filter((p) => (used.get(p.id) ?? 0) < Math.max(1, p.quantity));
+      prize = pickWeighted(inStock, (p) => p.weight ?? 0);
+      if (!prize) return null; // nothing left to drop
+      outOfStock = inStock.filter((p) => (p.weight ?? 0) > 0).every((p) => (used.get(p.id) ?? 0) + (p.id === prize!.id ? 1 : 0) >= Math.max(1, p.quantity));
+    } else {
+      prize = prizeSlots(prizes, locked.winnersCount)[drawNumber - 1] ?? null;
+    }
     const winner = await tx.contestWinner.create({
       data: {
         contestId,
@@ -68,7 +106,7 @@ export async function awardInstantWinner(contestId: string, c: Candidate, reason
         seed: drawSeed(),
       },
     });
-    const finished = drawNumber >= locked.winnersCount;
+    const finished = drawNumber >= locked.winnersCount || outOfStock;
     await tx.contest.update({
       where: { id: contestId },
       data: { drawsCount: drawNumber, ...(finished ? { status: 'FINISHED', finishedAt: new Date() } : {}) },

@@ -1,10 +1,11 @@
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { env } from '../config/env.js';
+import { env, platformOwnerIds } from '../config/env.js';
 import { prisma } from '../lib/prisma.js';
 import { redis } from '../lib/redis.js';
 import { TelegramError, type TelegramApi } from '../telegram/client.js';
+import { packEmoji } from '../telegram/emojiPack.js';
 import type { TgCallbackQuery, TgInlineButton, TgMessage, TgUser } from '../telegram/types.js';
 import { escapeHtml } from '../templates/render.js';
 import { ensureUser } from '../modules/chats/access.js';
@@ -21,25 +22,6 @@ const WELCOME = `<b>Добро пожаловать в SOLIK!</b>
 const app = (p = '') => `${env.WEB_APP_URL.replace(/\/$/, '')}${p}`;
 const BANNER = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../assets/welcome.png');
 
-// ---- Premium emoji for the buttons, resolved from the configured pack by emoji character ----
-let emojiCache: { at: number; byChar: Map<string, string>; all: string[] } | null = null;
-async function packEmoji(api: TelegramApi) {
-  if (emojiCache && Date.now() - emojiCache.at < 3600_000) return emojiCache;
-  const byChar = new Map<string, string>();
-  const all: string[] = [];
-  try {
-    const set = await api.getStickerSet(env.MENU_EMOJI_PACK);
-    for (const st of set.stickers) {
-      if (!st.custom_emoji_id) continue;
-      all.push(st.custom_emoji_id);
-      for (const ch of [...(st.emoji ?? '')]) if (!byChar.has(ch)) byChar.set(ch, st.custom_emoji_id);
-    }
-  } catch {
-    // pack missing or not reachable: buttons go without icons
-  }
-  emojiCache = { at: Date.now(), byChar, all };
-  return emojiCache;
-}
 function pick(e: { byChar: Map<string, string>; all: string[] }, chars: string[], fallbackIndex: number) {
   for (const ch of chars) {
     const id = e.byChar.get(ch);
@@ -62,7 +44,7 @@ async function mainKeyboard(api: TelegramApi): Promise<TgInlineButton[][]> {
 async function sendWelcome(api: TelegramApi, chatId: number) {
   const rows = await mainKeyboard(api);
   const plain = rows.map((r) => r.map(({ icon_custom_emoji_id: _i, style: _s, ...b }) => b));
-  const cached = await redis().get('main:welcome_photo');
+  const cached = await redis().get('main:welcome_photo:winter1');
   const send = async (inline_keyboard: TgInlineButton[][]) => {
     if (cached) return api.sendPhoto(chatId, cached, WELCOME, { reply_markup: { inline_keyboard } });
     const data = await readFile(BANNER);
@@ -73,7 +55,7 @@ async function sendWelcome(api: TelegramApi, chatId: number) {
       reply_markup: { inline_keyboard },
     });
     const fileId = msg.photo?.at(-1)?.file_id;
-    if (fileId) await redis().set('main:welcome_photo', fileId);
+    if (fileId) await redis().set('main:welcome_photo:winter1', fileId);
     return msg;
   };
   try {
@@ -126,6 +108,14 @@ export async function handleMainPrivate(api: TelegramApi, msg: TgMessage) {
 
   if (text.startsWith('/newbot')) return startNewBot(api, from, msg.chat.id);
   if (text.startsWith('/help')) return void (await api.sendMessage(msg.chat.id, HELP));
+  if (text.startsWith('/admin')) {
+    const user = await prisma.user.findUnique({ where: { telegramId: BigInt(from.id) } });
+    if (user?.role !== 'OWNER' && user?.role !== 'ADMIN') return void (await api.sendMessage(msg.chat.id, 'Админ-панель доступна только администраторам платформы.'));
+    await api.sendMessage(msg.chat.id, '<b>Админ-панель SOLIK</b>\n\nПользователи, боты, подписки, рассылки, мониторинг чатов и каталог подарков.', {
+      reply_markup: { inline_keyboard: [[{ text: 'Открыть админ-панель', web_app: { url: app('/admin') } }]] },
+    });
+    return;
+  }
   await sendWelcome(api, msg.chat.id);
 }
 
@@ -173,4 +163,19 @@ export async function setupMainBotMenu(api: TelegramApi) {
     { command: 'help', description: 'Помощь' },
   ]);
   await api.setChatMenuButton({ type: 'web_app', text: 'Открыть', web_app: { url: app('/') } });
+  // platform owners also see /admin in their command list
+  for (const id of platformOwnerIds) {
+    await api
+      .setMyCommands(
+        [
+          { command: 'start', description: 'Главное меню' },
+          { command: 'admin', description: 'Админ-панель' },
+          { command: 'newbot', description: 'Создать своего бота' },
+          { command: 'notify', description: 'Уведомления о конкурсах в моих чатах' },
+          { command: 'help', description: 'Помощь' },
+        ],
+        { type: 'chat', chat_id: Number(id) },
+      )
+      .catch(() => undefined);
+  }
 }

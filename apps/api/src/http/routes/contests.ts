@@ -20,6 +20,7 @@ const prizeSchema = z.object({
   starsAmount: z.number().int().min(1).max(1_000_000).optional(),
   premiumMonths: z.number().int().optional(),
   quantity: z.number().int().min(1).max(1000).default(1),
+  weight: z.number().int().min(0).max(100000).optional(),
   place: z.number().int().min(1).optional(),
   position: z.number().int().min(1).optional(),
 });

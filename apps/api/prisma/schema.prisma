@@ -371,6 +371,9 @@ model ContestPrize {
   starsAmount Int?
   premiumMonths Int?
   quantity    Int        @default(1)
+  // drop weight for instant-win modes: with weights set, each win picks a prize at random
+  // in proportion to weight among prizes still in stock (e.g. bear 70, heart 25, rocket 5)
+  weight      Int?
   place       Int?       // winner place this prize is for (1-based); null = any
   position    Int?       // SMS prize queue: participant position (e.g. 1, 5, 10, 100)
   createdAt   DateTime   @default(now())

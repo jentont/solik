@@ -10,7 +10,8 @@ export interface PreviewMedia {
 
 /** Renders premium emoji with their Telegram preview; alt text = fallback character. */
 function withEmojiPreviews(html: string) {
-  return html.replace(
+  // [[e:…]] = a premium emoji the bot picks from its pack when sending; shown as a small sparkle here
+  return html.replace(/\[\[e:[^\]]{1,8}\]\]\s?/g, '<span class="tg-pack" title="Премиум-эмодзи из пака">✦</span> ').replace(
     /<tg-emoji emoji-id="(\d+)">(.*?)<\/tg-emoji>/g,
     (_m, id: string, fb: string) => `<tg-emoji><img src="/api/emoji/${id}/preview" alt="${fb.replace(/"/g, '')}" loading="lazy"></tg-emoji>`,
   );

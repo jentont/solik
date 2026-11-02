@@ -25,6 +25,7 @@ interface Prize {
   starsAmount?: number;
   premiumMonths?: number;
   quantity: number;
+  weight?: number;
 }
 
 function Wizard() {
@@ -78,7 +79,8 @@ function Wizard() {
           type,
           title,
           config: type === 'STARS_AUCTION' ? { bidMode: 'paid_messages', ...config } : config,
-          winnersCount,
+          // weighted drops: the contest ends when every prize is out of stock
+          winnersCount: type === 'MESSAGE_GIVEAWAY' && config.weightedPrizes ? prizes.reduce((s, p) => s + (p.quantity || 1), 0) : winnersCount,
           startsAt: startsAt ? new Date(startsAt).toISOString() : null,
           endsAt: endsAt ? new Date(endsAt).toISOString() : null,
           postText: post.text || null,
@@ -159,7 +161,7 @@ function Wizard() {
           )}
 
           {step === 3 && <PrizeStep prizes={prizes} setPrizes={setPrizes} winnersCount={winnersCount} setWinners={setWinners} type={type} />}
-          {step === 4 && <ConditionsStep type={type} config={config} setConfig={setConfig} />}
+          {step === 4 && <ConditionsStep type={type} config={config} setConfig={setConfig} prizes={prizes} setPrizes={setPrizes} />}
 
           {step === 5 && (
             <Card className="max-w-xl space-y-4">
@@ -410,7 +412,7 @@ function PrizeStep({ prizes, setPrizes, winnersCount, setWinners, type }: any) {
   );
 }
 
-function ConditionsStep({ type, config, setConfig }: { type: string; config: Record<string, any>; setConfig(c: Record<string, any>): void }) {
+function ConditionsStep({ type, config, setConfig, prizes, setPrizes }: { type: string; config: Record<string, any>; setConfig(c: Record<string, any>): void; prizes: Prize[]; setPrizes(p: Prize[]): void }) {
   const set = (k: string, v: unknown) => setConfig({ ...config, [k]: v });
   const num = (k: string, label: string, def: number, hint?: string, step = 1) => (
     <Input label={label} type="number" step={step} value={config[k] ?? def} onChange={(e) => set(k, Number(e.target.value))} hint={hint} />
@@ -478,12 +480,45 @@ function ConditionsStep({ type, config, setConfig }: { type: string; config: Rec
           {config.trigger === 'every_n_random' && num('windowMinutes', 'Окно активности, мин', 60)}
           {config.trigger === 'chance' && (
             <>
-              {num('chancePercent', 'Шанс выигрыша, %', 0.9, 'Например, 0.9 — как в «Шанс был: 0,9%»', 0.1)}
-              {num('dailyLimit', 'Подарков в день', 56)}
+              {num('chancePercent', 'Шанс подарка на одно сообщение, %', 0.9, 'Например, 0.9 — примерно один подарок на 110 сообщений', 0.1)}
+              {num('dailyLimit', 'Максимум подарков в чате за сутки', 56)}
             </>
           )}
           {config.trigger === 'threshold' && num('threshold', 'Порог сообщений', 50)}
-          <AntiSpam config={config} set={set} />
+
+          <div className="space-y-3 rounded-2xl border border-gold/25 bg-gold/[0.06] p-4">
+            <Toggle
+              checked={!!config.paidOnly}
+              onChange={(v) => set('paidOnly', v)}
+              label="Только платные сообщения"
+              hint="Считаются только сообщения, оплаченные Stars (в группе включены «Платные сообщения»). Обычные сообщения не участвуют."
+            />
+            {config.paidOnly && (
+              <>
+                {num('minPaidStars', 'Минимальная цена сообщения, Stars', 1)}
+                {config.trigger === 'chance' && (
+                  <Toggle
+                    checked={!!config.starsBoost}
+                    onChange={(v) => set('starsBoost', v)}
+                    label="Дороже сообщение — выше шанс"
+                    hint="Сообщение за 5× минимальной цены даёт 5× шанс (не больше 100 %)."
+                  />
+                )}
+              </>
+            )}
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            {num('perUserLimit', 'Подарков на 1 человека', 1, '0 — без лимита')}
+            <Select label="За какой срок" value={config.perUserWindow ?? 'contest'} onChange={(e) => set('perUserWindow', e.target.value)}>
+              <option value="hour">в час</option>
+              <option value="day">в сутки</option>
+              <option value="contest">за весь конкурс</option>
+            </Select>
+          </div>
+
+          <DropTable config={config} set={set} prizes={prizes} setPrizes={setPrizes} />
+          {!config.paidOnly && <AntiSpam config={config} set={set} />}
         </>
       )}
       {type === 'ACTIVITY' && (
@@ -666,5 +701,55 @@ export default function NewContestPage() {
     <Suspense fallback={<Loading />}>
       <Wizard />
     </Suspense>
+  );
+}
+
+/** «Какой подарок выпадет»: per-prize weights shown as percentages, plus stock. */
+function DropTable({ config, set, prizes, setPrizes }: { config: Record<string, any>; set(k: string, v: unknown): void; prizes: Prize[]; setPrizes(p: Prize[]): void }) {
+  const on = !!config.weightedPrizes;
+  const total = prizes.reduce((s, p) => s + (p.weight ?? 0), 0);
+  const update = (i: number, patch: Partial<Prize>) => setPrizes(prizes.map((x, j) => (j === i ? { ...x, ...patch } : x)));
+  const enable = (v: boolean) => {
+    set('weightedPrizes', v);
+    // start from an even split so the owner only nudges the numbers
+    if (v && prizes.every((p) => !p.weight)) setPrizes(prizes.map((p) => ({ ...p, weight: Math.round(100 / Math.max(1, prizes.length)) })));
+  };
+  return (
+    <div className="space-y-3 rounded-2xl border border-white/[0.12] bg-white/[0.04] p-4">
+      <Toggle checked={on} onChange={enable} label="Свой шанс для каждого подарка" hint="Например: мишка 70 %, сердечко 25 %, ракета 5 %. Когда подарок закончился, он больше не выпадает." />
+      {on && (
+        <>
+          {!prizes.length && <p className="text-[15px] text-muted">Сначала добавьте подарки на шаге «Приз».</p>}
+          <ul className="space-y-2">
+            {prizes.map((p, i) => {
+              const pct = total > 0 ? ((p.weight ?? 0) / total) * 100 : 0;
+              return (
+                <li key={i} className="rounded-2xl bg-white/[0.05] p-3">
+                  <div className="flex items-center justify-between gap-3">
+                    <span className="min-w-0 truncate text-[16px] font-semibold">{p.title}</span>
+                    <span className="num shrink-0 font-display text-[18px] font-extrabold text-gold">{pct.toFixed(pct < 10 ? 1 : 0)} %</span>
+                  </div>
+                  <input
+                    type="range"
+                    min={0}
+                    max={100}
+                    value={p.weight ?? 0}
+                    onChange={(e) => update(i, { weight: Number(e.target.value) })}
+                    aria-label={`Шанс: ${p.title}`}
+                    className="mt-2 w-full accent-[#ffc23d]"
+                  />
+                  <label className="mt-1 flex items-center justify-between gap-3 text-[14px] text-muted">
+                    Сколько штук всего
+                    <input type="number" min={1} className="input h-10 w-24 py-1 text-right" value={p.quantity} onChange={(e) => update(i, { quantity: Math.max(1, Number(e.target.value) || 1) })} />
+                  </label>
+                </li>
+              );
+            })}
+          </ul>
+          {prizes.length > 0 && total === 0 && <p className="text-[14px] text-warn">Поставьте шанс хотя бы одному подарку.</p>}
+          <p className="text-[14px] text-muted">Шанс считается среди подарков, которые ещё остались. Конкурс закончится, когда раздадут все {prizes.reduce((s, p) => s + (p.quantity || 1), 0)} шт.</p>
+        </>
+      )}
+    </div>
   );
 }

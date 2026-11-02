@@ -1,9 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import { decideRegistration, parseSmsCommand } from '../src/modules/sms/parser.js';
 import { selectWinners, type Candidate } from '../src/modules/winners/select.js';
-import { prizeSlots } from '../src/modules/winners/engine.js';
+import { pickWeighted, prizeSlots } from '../src/modules/winners/engine.js';
+import { dropCustomEmoji } from '../src/telegram/emojiPack.js';
 import { minNextBid, validateBid } from '../src/modules/auction/service.js';
-import { rollChance, spamReason, startOfDay } from '../src/modules/activity/service.js';
+import { messageChance, perUserSince, rollChance, spamReason, startOfDay } from '../src/modules/activity/service.js';
 import { isJackpot, SLOT_JACKPOT } from '../src/modules/dice/service.js';
 import { isSubscriptionUsable, nextPeriod } from '../src/modules/subscriptions/service.js';
 import { chooseMethod } from '../src/modules/gifts/delivery.js';
@@ -125,6 +126,31 @@ describe('activity anti-spam and chance', () => {
     expect(hits).toBeGreaterThan(1600);
     expect(hits).toBeLessThan(2400);
     expect(rollChance(100)).toBe(true);
+  });
+  it('weighted prize pick follows the weights', () => {
+    const items = [{ n: 'bear', w: 70 }, { n: 'heart', w: 25 }, { n: 'rocket', w: 5 }, { n: 'none', w: 0 }];
+    const hits: Record<string, number> = { bear: 0, heart: 0, rocket: 0, none: 0 };
+    for (let i = 0; i < 20000; i++) hits[pickWeighted(items, (x) => x.w)!.n]!++;
+    expect(hits.bear! / 20000).toBeGreaterThan(0.66);
+    expect(hits.bear! / 20000).toBeLessThan(0.74);
+    expect(hits.rocket! / 20000).toBeLessThan(0.07);
+    expect(hits.none).toBe(0);
+    expect(pickWeighted([{ w: 0 }], (x) => x.w)).toBeNull();
+  });
+  it('paid messages raise the chance in proportion to the price', () => {
+    const cfg = { chancePercent: 2, starsBoost: true, minPaidStars: 10 };
+    expect(messageChance(cfg, 10)).toBe(2);
+    expect(messageChance(cfg, 50)).toBe(10);
+    expect(messageChance(cfg, 100000)).toBe(100);
+    expect(messageChance({ ...cfg, starsBoost: false }, 50)).toBe(2);
+  });
+  it('per-user limit window', () => {
+    const now = new Date('2026-11-02T22:30:00Z');
+    expect(perUserSince({ perUserWindow: 'hour', tzOffsetMinutes: 180 }, now)!.toISOString()).toBe('2026-11-02T21:30:00.000Z');
+    expect(perUserSince({ perUserWindow: 'contest', tzOffsetMinutes: 180 }, now)).toBeNull();
+  });
+  it('rejected premium emoji are dropped, not replaced with plain ones', () => {
+    expect(dropCustomEmoji('<tg-emoji emoji-id="123456">🔥</tg-emoji> <b>Перебито!</b>')).toBe('<b>Перебито!</b>');
   });
   it('day boundary honours the timezone (MSK)', () => {
     const d = startOfDay(new Date('2026-11-02T22:30:00Z'), 180); // 01:30 MSK on Nov 3

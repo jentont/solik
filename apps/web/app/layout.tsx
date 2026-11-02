@@ -12,25 +12,17 @@ const display = localFont({ src: './fonts/Unbounded.woff', variable: '--font-dis
 const hand = localFont({ src: './fonts/Caveat.woff', variable: '--font-hand', weight: '400 700', display: 'swap' });
 
 export const metadata: Metadata = {
-  title: 'SOLIK — конкурсы, подарки и Stars в Telegram',
+  title: 'SOLIK — конкурсы и подарки в Telegram',
   description: 'Платформа для Telegram-конкурсов, розыгрышей подарков, Stars и NFT',
   icons: { icon: '/brand/logo.png' },
 };
 
-export const viewport: Viewport = { width: 'device-width', initialScale: 1, maximumScale: 1, themeColor: '#F5F5F7' };
+export const viewport: Viewport = { width: 'device-width', initialScale: 1, maximumScale: 1, themeColor: '#121214' };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     // telegram-web-app.js sets CSS variables on <html> before hydration
-    <html lang="ru" className={`${sans.variable} ${display.variable} ${hand.variable}`} suppressHydrationWarning>
-      <head>
-        {/* theme before paint: Telegram colour scheme, else the OS preference */}
-        <script
-          dangerouslySetInnerHTML={{
-            __html: `(function(){try{var s=(window.Telegram&&Telegram.WebApp&&Telegram.WebApp.colorScheme)||(matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light');if(s==='dark')document.documentElement.classList.add('dark')}catch(e){}})()`,
-          }}
-        />
-      </head>
+    <html lang="ru" className={`dark ${sans.variable} ${display.variable} ${hand.variable}`} suppressHydrationWarning>
       <body className="font-sans">
         <Script src="https://telegram.org/js/telegram-web-app.js" strategy="beforeInteractive" />
         <AuthProvider>

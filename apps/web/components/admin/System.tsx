@@ -111,18 +111,18 @@ export function AdminLogs() {
         {!I ? (
           <Loading />
         ) : (
-          <div className="grid gap-3 text-sm sm:grid-cols-2 lg:grid-cols-4">
+          <div className="grid gap-3 text-[15px] sm:grid-cols-2 lg:grid-cols-4">
             <div className="flex items-center gap-2">{ok(I.database)} PostgreSQL</div>
             <div className="flex items-center gap-2">{ok(I.redis)} Redis / BullMQ</div>
             <div className="flex items-center gap-2">
               {ok(!I.mainBotWebhook?.error && !I.mainBotWebhook?.last_error_message)} Webhook главного бота
-              <span className="text-xs text-muted">({I.mainBotWebhook?.pending_update_count ?? '?'} в очереди)</span>
+              <span className="text-[13px] text-muted">({I.mainBotWebhook?.pending_update_count ?? '?'} в очереди)</span>
             </div>
             <div className="flex items-center gap-2">
-              {ok(I.ai.configured)} AI: {I.ai.provider} <span className="text-xs text-muted">{I.ai.textModel}</span>
+              {ok(I.ai.configured)} AI: {I.ai.provider} <span className="text-[13px] text-muted">{I.ai.textModel}</span>
             </div>
-            {I.mainBotStars && <div className="text-gold">⭐ Баланс главного бота: {I.mainBotStars.amount}</div>}
-            {I.mainBotWebhook?.last_error_message && <div className="col-span-full text-xs text-warn">Webhook: {I.mainBotWebhook.last_error_message}</div>}
+            {I.mainBotStars && <div className="text-gold">Баланс главного бота в Stars: {I.mainBotStars.amount}</div>}
+            {I.mainBotWebhook?.last_error_message && <div className="col-span-full text-[13px] text-warn">Webhook: {I.mainBotWebhook.last_error_message}</div>}
           </div>
         )}
       </Card>
@@ -132,7 +132,7 @@ export function AdminLogs() {
           <div className="grid gap-4 lg:grid-cols-3">
             <div>
               <div className="label">Webhook ({errors.data.webhook.length})</div>
-              <div className="scroll-thin max-h-60 space-y-1 overflow-y-auto font-mono text-[11px]">
+              <div className="scroll-thin max-h-60 space-y-1 overflow-y-auto font-mono text-[13px]">
                 {errors.data.webhook.map((e: any) => (
                   <div key={e.id} className="text-bad">
                     {fmtDate(e.receivedAt)} @{e.bot?.username}: {e.error}
@@ -142,7 +142,7 @@ export function AdminLogs() {
             </div>
             <div>
               <div className="label">Выдача призов ({errors.data.deliveries.length})</div>
-              <div className="scroll-thin max-h-60 space-y-1 overflow-y-auto font-mono text-[11px]">
+              <div className="scroll-thin max-h-60 space-y-1 overflow-y-auto font-mono text-[13px]">
                 {errors.data.deliveries.map((d: any) => (
                   <div key={d.id} className="text-warn">
                     {fmtDate(d.updatedAt)} {d.recipientTgId}: {d.error}
@@ -152,7 +152,7 @@ export function AdminLogs() {
             </div>
             <div>
               <div className="label">AI ({errors.data.aiJobs.length})</div>
-              <div className="scroll-thin max-h-60 space-y-1 overflow-y-auto font-mono text-[11px]">
+              <div className="scroll-thin max-h-60 space-y-1 overflow-y-auto font-mono text-[13px]">
                 {errors.data.aiJobs.map((j: any) => (
                   <div key={j.id} className="text-warn">
                     {fmtDate(j.updatedAt)} {j.kind}: {j.error}

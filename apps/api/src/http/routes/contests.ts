@@ -8,7 +8,7 @@ import { leaderboard } from '../../modules/activity/service.js';
 import { cancelContest, finishContest, startContest } from '../../modules/contests/lifecycle.js';
 import { assertBotUsable, assertContestLimit } from '../../modules/subscriptions/plans.js';
 import { requireAuth, uid } from '../auth.js';
-import { ownChannel, ownChat, ownContest, ownMedia, usableBot } from '../ownership.js';
+import { assertTgAdmin, ownChannel, ownChat, ownContest, ownMedia, usableBot } from '../ownership.js';
 import { pageQuery, parse } from '../validate.js';
 
 const prizeSchema = z.object({
@@ -55,13 +55,22 @@ async function validatePrizes(userId: string, prizes: z.infer<typeof prizeSchema
   }
 }
 
-async function resolveTarget(userId: string, body: z.infer<typeof contestSchema>) {
+/** Re-check admin rights right before a contest goes live in its chat/channel. */
+async function assertContestAdmin(contestId: string, userTgId: string | number | bigint) {
+  const c = await prisma.contest.findUniqueOrThrow({ where: { id: contestId }, include: { bot: true, chat: true, channel: true } });
+  if (c.channel) await assertTgAdmin(c.bot, c.channel.chatId, userTgId, `канале «${c.channel.title}»`);
+  else if (c.chat) await assertTgAdmin(c.bot, c.chat.chatId, userTgId, `чате «${c.chat.title}»`);
+}
+
+async function resolveTarget(userId: string, userTgId: string | number | bigint, body: z.infer<typeof contestSchema>) {
   const bot = await usableBot(userId, body.botId);
   const chat = body.chatId ? await ownChat(userId, body.chatId) : null;
   const channel = body.channelId ? await ownChannel(userId, body.channelId) : null;
   if (chat && chat.botId !== bot.id) throw badRequest('Чат подключен к другому боту');
   if (channel && channel.botId !== bot.id) throw badRequest('Канал подключен к другому боту');
   if (!chat && !channel) throw badRequest('Выберите чат или канал');
+  if (channel) await assertTgAdmin(bot, channel.chatId, userTgId, `канале «${channel.title}»`);
+  if (chat) await assertTgAdmin(bot, chat.chatId, userTgId, `чате «${chat.title}»`);
 
   const needsGroup = ['MESSAGE_GIVEAWAY', 'ACTIVITY', 'DICE_777', 'SMS_COUNTER'].includes(body.type);
   if (needsGroup && !chat) throw badRequest('Этот тип конкурса работает в группе — выберите чат');
@@ -122,7 +131,7 @@ export async function contestRoutes(app: FastifyInstance) {
   app.post('/api/contests', async (req) => {
     const userId = uid(req);
     const body = parse(contestSchema, req.body);
-    const t = await resolveTarget(userId, body);
+    const t = await resolveTarget(userId, req.user!.telegramId, body);
     assertBotUsable(t.bot);
     await assertContestLimit(userId);
     await validatePrizes(userId, body.prizes);
@@ -211,7 +220,8 @@ export async function contestRoutes(app: FastifyInstance) {
   });
 
   app.post<{ Params: { id: string } }>('/api/contests/:id/start', async (req) => {
-    await ownContest(uid(req), req.params.id);
+    const own = await ownContest(uid(req), req.params.id);
+    await assertContestAdmin(own.id, req.user!.telegramId);
     const { now } = parse(z.object({ now: z.boolean().optional() }), req.body ?? {});
     return startContest(req.params.id, uid(req), { force: now });
   });
@@ -306,6 +316,7 @@ export async function contestRoutes(app: FastifyInstance) {
     assertBotUsable(bot);
     const chat = await ownChat(userId, body.chatId);
     if (chat.botId !== bot.id) throw badRequest('Чат подключен к другому боту');
+    await assertTgAdmin(bot, chat.chatId, req.user!.telegramId, `чате «${chat.title}»`);
     await validatePrizes(userId, body.prizes);
     if (body.mode === 'EVERY_NTH' && !body.everyN) throw badRequest('Укажите шаг N');
 

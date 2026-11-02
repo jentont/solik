@@ -65,7 +65,7 @@ export async function createBidInvoice(api: TelegramApi, contest: Contest & { pr
     data: { botId: contest.botId, contestId: contest.id, tgUserId: BigInt(user.id), username: user.username, amount, kind: 'BID' },
   });
   const link = await api.createInvoiceLink({
-    title: `Ставка ${amount} ⭐`,
+    title: `Ставка ${amount} Stars`,
     description: `Перебивка «${contest.title}». Приз: ${prizeTitle(contest.prizes)}`.slice(0, 255),
     payload: `bid:${tx.id}`,
     amount,
@@ -146,7 +146,7 @@ export async function handleBidPayment(bot: TelegramBot, from: TgUser, payment: 
       () => prisma.starsTransaction.update({ where: { id: outcome.tx.id }, data: { status: 'REFUNDED', refundReason: outcome.reason } }),
       (e) => contestEvent(outcome.tx.contestId!, 'bid.refund_failed', { chargeId, error: String(e) }),
     );
-    await api.sendMessage(from.id, `↩️ Ставка не принята: ${outcome.reason}. Stars возвращены.`).catch(() => undefined);
+    await api.sendMessage(from.id, `Ставка не принята: ${outcome.reason}. Stars возвращены.`).catch(() => undefined);
     return outcome;
   }
   if (outcome.kind !== 'applied') return outcome;
@@ -265,7 +265,7 @@ export async function handleAuctionTimer(job: { contestId: string; version: numb
     await sendTemplate(api, ctx, c.targetChatTgId, 'AUCTION_COUNTDOWN', { remaining_time: job.secondsLeft, leader, contest_name: c.title });
     return;
   }
-  const text = `⏳ <b>${job.secondsLeft}</b>\nСтавка: ${c.currentBid ?? 0} ⭐ — ${leader}`;
+  const text = `<b>${job.secondsLeft}</b>\nСтавка: ${c.currentBid ?? 0} Stars — ${leader}`;
   const key = `auction:countdown:${c.id}:${c.timerVersion}`;
   const existing = await redis().get(key);
   if (existing) {

@@ -10,6 +10,7 @@ import { mention, renderTemplate } from '../../templates/render.js';
 import { createDeliveriesForDraw } from '../gifts/delivery.js';
 import { assertBotUsable } from '../subscriptions/plans.js';
 import { drawWinners } from '../winners/engine.js';
+import { notifyContestStarted } from '../notify/service.js';
 import { scheduleAuctionTimers } from '../auction/timers.js';
 
 export function prizeTitle(prizes: Pick<ContestPrize, 'title'>[]): string {
@@ -19,7 +20,7 @@ export function prizeTitle(prizes: Pick<ContestPrize, 'title'>[]): string {
 type FullContest = Contest & { bot: TelegramBot; prizes: ContestPrize[] };
 
 function joinButtonText(c: Contest) {
-  return ((c.config as Record<string, unknown>)?.joinButtonText as string) || '🎁 Участвовать';
+  return ((c.config as Record<string, unknown>)?.joinButtonText as string) || 'Участвовать';
 }
 
 /** Publishes the contest post and activates it (or schedules it for startsAt). */
@@ -64,7 +65,7 @@ export async function startContest(contestId: string, actorId: string | null, op
     // invoice mode only: in paid-messages mode the bid is the paid message in the chat itself
     if (contest.type === 'STARS_AUCTION' && (contest.config as Record<string, unknown>)?.bidMode !== 'paid_messages') {
       const me = await api.getMe();
-      buttons.push({ text: '⭐ Перебить ставку', url: `https://t.me/${me.username}?start=bid_${contest.id}` });
+      buttons.push({ text: 'Перебить ставку', url: `https://t.me/${me.username}?start=bid_${contest.id}` });
     }
     for (const b of (contest.postButtons as any[]) ?? []) if (b?.text && b?.url) buttons.push({ text: b.text, url: b.url });
     try {
@@ -105,6 +106,8 @@ export async function startContest(contestId: string, actorId: string | null, op
   else if (updated.endsAt) await scheduleContestEnd(updated.id, updated.endsAt);
 
   await contestEvent(contestId, 'contest.started', { publishedMessageId });
+  // tell people active in that chat; a failure here must never block the contest
+  await notifyContestStarted(contestId).catch(() => 0);
   await audit('contest.start', { actorId, entity: 'Contest', entityId: contestId });
   return updated;
 }

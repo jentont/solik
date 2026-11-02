@@ -6,6 +6,7 @@ import { toast } from 'sonner';
 import { api, useApi } from '@/lib/api';
 import { CONTEST_TYPES, fmtDate, fmtDay, fmtNum } from '@/lib/format';
 import { Badge, Button, Card, CardTitle, ErrorState, Loading, Modal, Pager, Stat, StatusBadge, Table, Tabs, useConfirm } from '@/components/ui';
+import { StarIcon } from '../StarIcon';
 
 export function AdminOverview() {
   const { data, error, loading } = useApi<any>('/api/admin/stats');
@@ -16,7 +17,7 @@ export function AdminOverview() {
       <Stat label="Пользователи" value={fmtNum(data.users)} />
       <Stat label="White-Label боты" value={fmtNum(data.wlBots)} />
       <Stat label="Активные подписки" value={fmtNum(data.activeSubs)} />
-      <Stat label="Доход за 30 дней" value={<span className="text-gold">⭐ {fmtNum(data.revenue30Stars)}</span>} hint={`Всего ⭐ ${fmtNum(data.revenueStars)}`} />
+      <Stat label="Доход за 30 дней" value={<span className="inline-flex items-center gap-1.5 text-gold"><StarIcon size={20} />{fmtNum(data.revenue30Stars)}</span>} hint={`Всего ${fmtNum(data.revenueStars)} Stars`} />
       <Stat label="Группы и чаты" value={fmtNum(data.chats)} />
       <Stat label="Каналы" value={fmtNum(data.channels)} />
       <Stat label="Конкурсы" value={fmtNum(data.contests)} />
@@ -72,11 +73,11 @@ export function AdminBots() {
                 <div className="font-medium">
                   {b.name} {b.isPlatform && <Badge tone="accent">главный</Badge>}
                 </div>
-                <div className="text-xs text-muted">
+                <div className="text-[13px] text-muted">
                   @{b.username} · <span className="font-mono">{b.telegramId}</span>
                 </div>
               </td>
-              <td className="px-3 text-xs">
+              <td className="px-3 text-[13px]">
                 {b.owner ? (
                   <>
                     {b.owner.username ? `@${b.owner.username}` : '—'}
@@ -89,13 +90,13 @@ export function AdminBots() {
               <td className="px-3">
                 <StatusBadge status={b.status} />
               </td>
-              <td className="px-3">{b.subscription ? <StatusBadge status={b.subscription.status} /> : <span className="text-xs text-muted">—</span>}</td>
+              <td className="px-3">{b.subscription ? <StatusBadge status={b.subscription.status} /> : <span className="text-[13px] text-muted">—</span>}</td>
               <td className="px-3 tabular-nums">{b._count.chats}</td>
               <td className="px-3 tabular-nums">{b._count.channels}</td>
               <td className="px-3 tabular-nums">{b._count.contests}</td>
               <td className="px-3 tabular-nums">{fmtNum(b.participantsCount)}</td>
-              <td className="px-3 text-xs text-muted">{fmtDay(b.createdAt)}</td>
-              <td className="px-3 text-xs text-muted">{fmtDate(b.lastActivityAt)}</td>
+              <td className="px-3 text-[13px] text-muted">{fmtDay(b.createdAt)}</td>
+              <td className="px-3 text-[13px] text-muted">{fmtDate(b.lastActivityAt)}</td>
             </tr>
           ))}
         </Table>
@@ -151,7 +152,7 @@ function BotCard({ id, onClose }: { id: string | null; onClose(): void }) {
           </div>
           <Tabs<'info' | 'chats' | 'contests' | 'logs'> value={tab} onChange={setTab} tabs={[{ id: 'info', label: 'Информация' }, { id: 'chats', label: 'Чаты', count: b.chats.length + b.channels.length }, { id: 'contests', label: 'Конкурсы', count: data.contests.length }, { id: 'logs', label: 'Логи' }]} />
           {tab === 'info' && (
-            <dl className="grid grid-cols-2 gap-x-6 gap-y-2 text-sm">
+            <dl className="grid grid-cols-2 gap-x-6 gap-y-2 text-[15px]">
               {[
                 ['Telegram ID', b.telegramId],
                 ['Владелец', b.owner ? `${b.owner.username ? '@' + b.owner.username : ''} (${b.owner.telegramId})` : 'Платформа'],
@@ -163,7 +164,7 @@ function BotCard({ id, onClose }: { id: string | null; onClose(): void }) {
                 ['Причина приостановки', b.suspendedReason ?? '—'],
               ].map(([k, v]) => (
                 <div key={k as string} className="border-b border-line/[0.05] pb-1.5">
-                  <dt className="text-xs text-muted">{k}</dt>
+                  <dt className="text-[13px] text-muted">{k}</dt>
                   <dd className="truncate">{v}</dd>
                 </div>
               ))}
@@ -175,9 +176,9 @@ function BotCard({ id, onClose }: { id: string | null; onClose(): void }) {
                 <tr key={c.id}>
                   <td className="px-3 py-2">
                     {c.title}
-                    <div className="font-mono text-xs text-muted">{c.chatId}</div>
+                    <div className="font-mono text-[13px] text-muted">{c.chatId}</div>
                   </td>
-                  <td className="px-3 text-xs">{c.t}</td>
+                  <td className="px-3 text-[13px]">{c.t}</td>
                   <td className="px-3">
                     <StatusBadge status={c.status} />
                   </td>
@@ -191,12 +192,12 @@ function BotCard({ id, onClose }: { id: string | null; onClose(): void }) {
               {data.contests.map((c: any) => (
                 <tr key={c.id}>
                   <td className="px-3 py-2">{c.title}</td>
-                  <td className="px-3 text-xs">{CONTEST_TYPES[c.type]?.label}</td>
+                  <td className="px-3 text-[13px]">{CONTEST_TYPES[c.type]?.label}</td>
                   <td className="px-3">
                     <StatusBadge status={c.status} />
                   </td>
                   <td className="px-3">{c._count.participants}</td>
-                  <td className="px-3 text-xs text-muted">{fmtDate(c.createdAt)}</td>
+                  <td className="px-3 text-[13px] text-muted">{fmtDate(c.createdAt)}</td>
                 </tr>
               ))}
             </Table>
@@ -211,7 +212,7 @@ function BotCard({ id, onClose }: { id: string | null; onClose(): void }) {
 
 export function LogList({ logs, webhookErrors = [] }: { logs: any[]; webhookErrors?: any[] }) {
   return (
-    <div className="scroll-thin max-h-[50dvh] space-y-1 overflow-y-auto font-mono text-xs">
+    <div className="scroll-thin max-h-[50dvh] space-y-1 overflow-y-auto font-mono text-[13px]">
       {webhookErrors.map((e) => (
         <div key={e.id} className="rounded-lg bg-bad/10 px-2 py-1.5 text-bad">
           {fmtDate(e.receivedAt)} webhook {e.type}: {e.error}
@@ -271,25 +272,25 @@ export function AdminChats() {
             <tr key={c.id} className="cursor-pointer hover:bg-line/[0.02]" onClick={() => setOpen(c.id)}>
               <td className="px-3 py-2.5">
                 <div className="font-medium">{c.title}</div>
-                <div className="text-xs text-muted">
+                <div className="text-[13px] text-muted">
                   {c.username ? `@${c.username} · ` : ''}
                   <span className="font-mono">{c.chatId}</span>
                 </div>
               </td>
-              <td className="px-3 text-xs">{{ GROUP: 'Группа', SUPERGROUP: 'Супергруппа', DISCUSSION: 'Обсуждение', CHANNEL: 'Канал' }[c.type as string]}</td>
-              <td className="px-3 text-xs">
+              <td className="px-3 text-[13px]">{{ GROUP: 'Группа', SUPERGROUP: 'Супергруппа', DISCUSSION: 'Обсуждение', CHANNEL: 'Канал' }[c.type as string]}</td>
+              <td className="px-3 text-[13px]">
                 @{c.bot.username} {c.bot.isPlatform && <Badge tone="accent">главный</Badge>}
               </td>
-              <td className="px-3 text-xs">{c.bot.owner?.username ? `@${c.bot.owner.username}` : c.bot.owner?.telegramId ?? '—'}</td>
+              <td className="px-3 text-[13px]">{c.bot.owner?.username ? `@${c.bot.owner.username}` : c.bot.owner?.telegramId ?? '—'}</td>
               <td className="px-3">
                 <StatusBadge status={c.status} />
               </td>
-              <td className="px-3">{c.isAdmin ? '✅' : '—'}</td>
+              <td className="px-3">{c.isAdmin ? 'да' : '—'}</td>
               <td className="px-3 tabular-nums">{c.memberCount ?? '—'}</td>
               <td className="px-3 tabular-nums">{c._count.contests}</td>
               <td className="px-3 tabular-nums">{fmtNum(c.messagesProcessed ?? c.postsProcessed)}</td>
-              <td className="px-3 text-xs text-muted">{fmtDay(c.connectedAt)}</td>
-              <td className="px-3 text-xs text-muted">{fmtDate(c.lastActivityAt)}</td>
+              <td className="px-3 text-[13px] text-muted">{fmtDay(c.connectedAt)}</td>
+              <td className="px-3 text-[13px] text-muted">{fmtDate(c.lastActivityAt)}</td>
             </tr>
           ))}
         </Table>
@@ -310,7 +311,7 @@ function ChatCard({ id, onClose }: { id: string | null; onClose(): void }) {
         <Loading />
       ) : (
         <div className="space-y-5">
-          <dl className="grid grid-cols-2 gap-x-6 gap-y-2 text-sm md:grid-cols-3">
+          <dl className="grid grid-cols-2 gap-x-6 gap-y-2 text-[15px] md:grid-cols-3">
             {[
               ['Chat ID', c.chatId],
               ['Username', c.username ? `@${c.username}` : '—'],
@@ -323,7 +324,7 @@ function ChatCard({ id, onClose }: { id: string | null; onClose(): void }) {
               ['Активность', fmtDate(c.lastActivityAt)],
             ].map(([k, v]) => (
               <div key={k as string} className="border-b border-line/[0.05] pb-1.5">
-                <dt className="text-xs text-muted">{k}</dt>
+                <dt className="text-[13px] text-muted">{k}</dt>
                 <dd className="truncate">{v}</dd>
               </div>
             ))}
@@ -344,13 +345,13 @@ function ChatCard({ id, onClose }: { id: string | null; onClose(): void }) {
               {data.contests.map((x: any) => (
                 <tr key={x.id}>
                   <td className="px-3 py-2">{x.title}</td>
-                  <td className="px-3 text-xs">{CONTEST_TYPES[x.type]?.label}</td>
+                  <td className="px-3 text-[13px]">{CONTEST_TYPES[x.type]?.label}</td>
                   <td className="px-3">
                     <StatusBadge status={x.status} />
                   </td>
                   <td className="px-3">{x._count.participants}</td>
                   <td className="px-3">{x._count.winners}</td>
-                  <td className="px-3 text-xs text-muted">{fmtDate(x.createdAt)}</td>
+                  <td className="px-3 text-[13px] text-muted">{fmtDate(x.createdAt)}</td>
                 </tr>
               ))}
             </Table>
@@ -397,11 +398,11 @@ export function AdminUsers({ isOwner }: { isOwner: boolean }) {
             <tr key={u.id} className={u.isBlocked ? 'opacity-50' : ''}>
               <td className="px-3 py-2.5">
                 {u.firstName} {u.username && <span className="text-muted">@{u.username}</span>}
-                <div className="font-mono text-xs text-muted">{u.telegramId}</div>
+                <div className="font-mono text-[13px] text-muted">{u.telegramId}</div>
               </td>
               <td className="px-3">
                 {isOwner ? (
-                  <select className="input h-8 w-28 py-0 text-xs" value={u.role} onChange={(e) => setRole(u.id, e.target.value)}>
+                  <select className="input h-8 w-28 py-0 text-[13px]" value={u.role} onChange={(e) => setRole(u.id, e.target.value)}>
                     <option value="USER">USER</option>
                     <option value="ADMIN">ADMIN</option>
                     <option value="OWNER">OWNER</option>
@@ -413,8 +414,8 @@ export function AdminUsers({ isOwner }: { isOwner: boolean }) {
               <td className="px-3">{u._count.bots}</td>
               <td className="px-3">{u._count.contests}</td>
               <td className="px-3">{u._count.botSubscriptions}</td>
-              <td className="px-3 text-xs text-muted">{fmtDay(u.createdAt)}</td>
-              <td className="px-3 text-xs text-muted">{fmtDate(u.lastLoginAt)}</td>
+              <td className="px-3 text-[13px] text-muted">{fmtDay(u.createdAt)}</td>
+              <td className="px-3 text-[13px] text-muted">{fmtDate(u.lastLoginAt)}</td>
               <td className="px-3 text-right">
                 <Button size="sm" variant="ghost" onClick={() => block(u.id, !u.isBlocked)}>
                   {u.isBlocked ? 'Разблокировать' : 'Заблокировать'}

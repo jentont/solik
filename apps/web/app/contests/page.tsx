@@ -86,7 +86,7 @@ function Winners({ page, setPage }: { page: number; setPage(p: number): void }) 
         {data?.items.map((w) => (
           <tr key={w.id} className={w.status === 'REROLLED' ? 'opacity-50' : ''}>
             <td className="px-3 py-2.5">
-              {userName(w)} <span className="font-mono text-xs text-muted">{w.tgUserId}</span>
+              {userName(w)} <span className="font-mono text-[13px] text-muted">{w.tgUserId}</span>
             </td>
             <td className="px-3">
               <Link href={`/contests/${w.contest.id}`} className="text-accent">
@@ -98,7 +98,7 @@ function Winners({ page, setPage }: { page: number; setPage(p: number): void }) 
               #{w.place} {w.status === 'REROLLED' && <Badge tone="muted">перевыбран</Badge>}
             </td>
             <td className="px-3">{w.deliveries[0] ? <StatusBadge status={w.deliveries[0].status} /> : '—'}</td>
-            <td className="px-3 text-xs text-muted">{fmtDate(w.createdAt)}</td>
+            <td className="px-3 text-[13px] text-muted">{fmtDate(w.createdAt)}</td>
           </tr>
         ))}
       </Table>

@@ -5,6 +5,7 @@ import { Area, AreaChart, Bar, BarChart, CartesianGrid, ResponsiveContainer, Too
 import { useApi } from '@/lib/api';
 import { CONTEST_TYPES, fmtNum } from '@/lib/format';
 import { Card, CardTitle, Empty, ErrorState, Loading, PageHeader, Select, Stat } from '@/components/ui';
+import { StarIcon } from '@/components/StarIcon';
 
 const tooltip = { contentStyle: { background: 'rgb(25 25 35)', border: '1px solid rgb(255 255 255 / 0.08)', borderRadius: 12, fontSize: 12 }, labelStyle: { color: 'rgb(140 140 158)' } };
 
@@ -63,7 +64,7 @@ export default function AnalyticsPage() {
             <Stat label="Участники" value={fmtNum(data.totals.participants)} />
             <Stat label="Победители" value={fmtNum(data.totals.winners)} />
             <Stat label="Подарков выдано" value={fmtNum(data.totals.giftsDelivered)} />
-            <Stat label="Stars" value={<span className="text-gold">⭐ {fmtNum(data.totals.stars)}</span>} />
+            <Stat label="Stars" value={<span className="inline-flex items-center gap-1.5 text-gold"><StarIcon size={20} />{fmtNum(data.totals.stars)}</span>} />
           </div>
           {!data.totals.contests ? (
             <Empty title="За период нет данных" text="Запустите конкурс — статистика появится здесь." />
@@ -119,14 +120,14 @@ function Breakdown({ title, rows }: { title: string; rows: { name: string; conte
   return (
     <Card>
       <CardTitle>{title}</CardTitle>
-      <div className="space-y-2 text-sm">
+      <div className="space-y-2 text-[15px]">
         {rows.slice(0, 10).map((r) => (
           <div key={r.name} className="flex items-center justify-between border-b border-line/[0.05] pb-2">
             <span className="truncate">{r.name}</span>
-            <span className="flex gap-4 text-xs text-muted tabular-nums">
-              <span>🏆 {r.contests}</span>
-              <span>👥 {fmtNum(r.participants)}</span>
-              <span>🎁 {r.winners}</span>
+            <span className="flex gap-4 text-[13px] text-muted tabular-nums">
+              <span>конкурсов {r.contests}</span>
+              <span>участников {fmtNum(r.participants)}</span>
+              <span>победителей {r.winners}</span>
             </span>
           </div>
         ))}

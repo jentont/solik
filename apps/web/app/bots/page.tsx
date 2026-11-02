@@ -80,7 +80,7 @@ export default function BotsPage() {
             </Button>
           ) : (
             <Button variant="gold" loading={busy} icon={<Crown className="h-4 w-4" />} onClick={buy} disabled={!plan}>
-              Свой бот · {plan?.priceStars ?? 100} ⭐/мес
+              Свой бот · {plan?.priceStars ?? 100} Stars в месяц
             </Button>
           )
         }
@@ -99,7 +99,7 @@ export default function BotsPage() {
                 <h3 className="font-display font-semibold">@{platform.username}</h3>
                 <Badge tone="accent">Бесплатно</Badge>
               </div>
-              <p className="mt-1 text-sm text-muted">Добавьте бота администратором в свой чат или канал — он автоматически появится здесь, и в нём можно запускать любые конкурсы.</p>
+              <p className="mt-1 text-[15px] text-muted">Добавьте бота администратором в свой чат или канал — он автоматически появится здесь, и в нём можно запускать любые конкурсы.</p>
               <div className="mt-3 flex flex-wrap gap-2">
                 {platform.chats.map((c) => (
                   <Badge key={c.id}>
@@ -111,7 +111,7 @@ export default function BotsPage() {
                     <Radio className="h-3 w-3" /> {c.title}
                   </Badge>
                 ))}
-                {!platform.chats.length && !platform.channels.length && <span className="text-xs text-muted">Пока нет подключенных чатов</span>}
+                {!platform.chats.length && !platform.channels.length && <span className="text-[13px] text-muted">Пока нет подключенных чатов</span>}
               </div>
             </div>
             <div className="flex flex-wrap gap-2 sm:flex-col">
@@ -141,7 +141,7 @@ export default function BotsPage() {
               <Button onClick={() => setConnectOpen(true)}>Подключить бота</Button>
             ) : (
               <Button variant="gold" loading={busy} onClick={buy} disabled={!plan}>
-                Оформить за {plan?.priceStars ?? 100} ⭐
+                Оформить за {plan?.priceStars ?? 100} Stars
               </Button>
             )
           }
@@ -156,10 +156,10 @@ export default function BotsPage() {
                   <h3 className="truncate font-display font-semibold">{b.name}</h3>
                   <StatusBadge status={b.status} />
                 </div>
-                <a href={`https://t.me/${b.username}`} target="_blank" rel="noreferrer" className="text-sm text-accent">
+                <a href={`https://t.me/${b.username}`} target="_blank" rel="noreferrer" className="text-[15px] text-accent">
                   @{b.username} <ExternalLink className="inline h-3 w-3" />
                 </a>
-                <div className="mt-0.5 font-mono text-xs text-muted">ID {b.telegramId}</div>
+                <div className="mt-0.5 font-mono text-[13px] text-muted">ID {b.telegramId}</div>
               </div>
             </div>
             <div className="mt-4 grid grid-cols-4 gap-2 text-center">
@@ -171,19 +171,19 @@ export default function BotsPage() {
               ].map(([l, v]) => (
                 <div key={l as string} className="rounded-xl bg-elevated/50 py-2">
                   <div className="font-display text-lg font-bold">{fmtNum(v as number)}</div>
-                  <div className="text-[11px] text-muted">{l}</div>
+                  <div className="text-[13px] text-muted">{l}</div>
                 </div>
               ))}
             </div>
             {b.subscription && (
-              <div className="mt-3 flex items-center justify-between text-xs text-muted">
+              <div className="mt-3 flex items-center justify-between text-[13px] text-muted">
                 <span>
                   Подписка: <StatusBadge status={b.subscription.status} />
                 </span>
                 <span>до {fmtDay(b.subscription.periodEnd)}</span>
               </div>
             )}
-            {b.lastError && <p className="mt-2 truncate text-xs text-warn">⚠ {b.lastError}</p>}
+            {b.lastError && <p className="mt-2 truncate text-[13px] text-warn">Ошибка: {b.lastError}</p>}
             <Link href={`/bots/${b.id}`} className="mt-4 block">
               <Button variant="secondary" className="w-full">
                 Управление
@@ -194,7 +194,7 @@ export default function BotsPage() {
       </div>
 
       <Modal open={connectOpen} onClose={() => setConnectOpen(false)} title="Подключение собственного бота">
-        <ol className="mb-5 list-decimal space-y-1.5 pl-5 text-sm text-muted">
+        <ol className="mb-5 list-decimal space-y-1.5 pl-5 text-[15px] text-muted">
           <li>
             Откройте{' '}
             <a href="https://t.me/BotFather" target="_blank" rel="noreferrer" className="text-accent">
@@ -206,7 +206,7 @@ export default function BotsPage() {
           <li>Скопируйте токен и вставьте ниже</li>
         </ol>
         <Input label="Токен BotFather" placeholder="123456789:AA…" value={token} onChange={(e) => setToken(e.target.value)} autoComplete="off" spellCheck={false} />
-        <p className="mt-2 text-xs text-muted">Токен шифруется (AES-256-GCM) и больше нигде не показывается.</p>
+        <p className="mt-2 text-[13px] text-muted">Токен шифруется (AES-256-GCM) и больше нигде не показывается.</p>
         <Button className="mt-5 w-full" loading={busy} disabled={token.length < 30} onClick={connect}>
           Подключить
         </Button>

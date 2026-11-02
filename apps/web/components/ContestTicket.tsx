@@ -46,7 +46,7 @@ export function ContestTicket({ c }: { c: TicketContest }) {
   const prizeGift = c.prizes.find((p) => p.gift)?.gift ?? (c.prizes[0] && /#\s*\d+$|-\d+$/.test(c.prizes[0].title) ? { name: c.prizes[0].title } : null);
 
   return (
-    <Link href={`/contests/${c.id}`} className="ticket block transition-colors hover:brightness-[0.985]">
+    <Link href={`/contests/${c.id}`} className="ticket press block transition hover:brightness-110">
       {/* stub */}
       <div className="flex h-[76px] items-center gap-3 px-4">
         {prizeGift ? (
@@ -59,9 +59,16 @@ export function ContestTicket({ c }: { c: TicketContest }) {
         )}
         <div className="min-w-0 flex-1">
           <div className="truncate text-[16px] font-semibold leading-tight">{c.title}</div>
-          <div className="mt-0.5 truncate text-[13px] text-muted">{c.chat?.title ?? c.channel?.title ?? `@${c.bot.username}`}</div>
+          <div className="mt-0.5 truncate text-[14px] text-muted">{c.chat?.title ?? c.channel?.title ?? `@${c.bot.username}`}</div>
         </div>
-        <StatusBadge status={c.status} />
+        {live ? (
+          <span className="flex shrink-0 items-center gap-1.5 rounded-full border border-ribbon/40 bg-ribbon/15 px-2.5 py-1 font-display text-[12px] font-extrabold tracking-wide text-[#ff6b77]">
+            <span className="h-2 w-2 animate-pulse rounded-full bg-[#ff4d5e] shadow-[0_0_8px_#ff4d5e]" />
+            LIVE
+          </span>
+        ) : (
+          <StatusBadge status={c.status} />
+        )}
       </div>
       <div className="ticket-perf" />
 
@@ -70,12 +77,12 @@ export function ContestTicket({ c }: { c: TicketContest }) {
         {auction && live ? (
           <div className="flex items-end justify-between gap-3">
             <div>
-              <div className={cn('num font-display text-[34px] font-extrabold leading-none tracking-[-0.03em]', urgent ? 'text-ribbon' : 'text-fg')}>{timeLeft(c.endsAt)}</div>
-              <div className="mt-1.5 text-[13px] text-muted">{c.leaderName ? `лидирует ${c.leaderName}` : 'ставок пока нет'}</div>
+              <div className={cn('num font-display text-[40px] font-black leading-none tracking-[-0.03em]', urgent ? 'text-ribbon' : 'text-fg')}>{timeLeft(c.endsAt)}</div>
+              <div className="mt-1.5 text-[14px] text-muted">{c.leaderName ? `лидирует ${c.leaderName}` : 'ставок пока нет'}</div>
             </div>
             <div className="text-right">
               <Stars value={c.currentBid ?? 0} size={20} className="font-display text-[22px] font-semibold" />
-              <div className="mt-1 max-w-[140px] truncate text-[13px] text-muted">{prize}</div>
+              <div className="mt-1 max-w-[140px] truncate text-[14px] text-muted">{prize}</div>
             </div>
           </div>
         ) : c.smsCounter ? (
@@ -85,10 +92,10 @@ export function ContestTicket({ c }: { c: TicketContest }) {
                 {c.smsCounter.count}
                 <span className="text-[15px] text-muted"> / {c.smsCounter.target}</span>
               </span>
-              <span className="truncate pl-3 text-[13px] text-muted">{prize}</span>
+              <span className="truncate pl-3 text-[14px] text-muted">{prize}</span>
             </div>
-            <div className="h-1.5 overflow-hidden rounded-full bg-bg">
-              <div className="h-full rounded-full bg-accent" style={{ width: `${Math.min(100, (c.smsCounter.count / c.smsCounter.target) * 100)}%` }} />
+            <div className="h-2.5 overflow-hidden rounded-full bg-white/10">
+              <div className="h-full rounded-full bg-[linear-gradient(90deg,#4ade80,#a9dcff)] transition-[width] duration-700" style={{ width: `${Math.min(100, (c.smsCounter.count / c.smsCounter.target) * 100)}%` }} />
             </div>
           </div>
         ) : (
@@ -97,7 +104,7 @@ export function ContestTicket({ c }: { c: TicketContest }) {
             <Figure label="победителей" value={fmtNum(c._count.winners)} />
             <div className="min-w-0 text-right">
               <div className="truncate text-[15px] font-semibold text-accent">{prize || '—'}</div>
-              <div className="mt-0.5 text-[12px] text-muted">{live && c.endsAt ? `ещё ${timeLeft(c.endsAt)}` : c.endsAt ? fmtDate(c.endsAt) : t?.label}</div>
+              <div className="mt-0.5 text-[13px] text-muted">{live && c.endsAt ? `ещё ${timeLeft(c.endsAt)}` : c.endsAt ? fmtDate(c.endsAt) : t?.label}</div>
             </div>
           </div>
         )}
@@ -110,7 +117,7 @@ function Figure({ label, value }: { label: string; value: string }) {
   return (
     <div>
       <div className="num font-display text-[20px] font-semibold leading-none">{value}</div>
-      <div className="mt-1.5 text-[12px] text-muted">{label}</div>
+      <div className="mt-1.5 text-[13px] text-muted">{label}</div>
     </div>
   );
 }

@@ -65,10 +65,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setInTelegram(true);
       wa.ready();
       wa.expand();
-      const dark = (wa as { colorScheme?: string }).colorScheme === 'dark';
-      document.documentElement.classList.toggle('dark', dark);
-      wa.setHeaderColor?.(dark ? '#000000' : '#F5F5F7');
-      wa.setBackgroundColor?.(dark ? '#000000' : '#F5F5F7');
+      // the winter theme is always dark; match Telegram's own header to it
+      wa.setHeaderColor?.('#1c1c20');
+      wa.setBackgroundColor?.('#121214');
       api<{ token: string; user: Me }>('/api/auth/telegram-webapp', { body: { initData: wa.initData } })
         .then((r) => {
           setToken(r.token);

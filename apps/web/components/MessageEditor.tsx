@@ -75,7 +75,7 @@ export function MessageEditor({ value, onChange, allowButtons = true, allowMedia
           {varsOpen && (
             <div className="scroll-thin absolute left-0 top-9 z-20 max-h-64 w-56 overflow-y-auto rounded-xl border border-line/10 bg-elevated p-1 shadow-card">
               {VARS.map((v) => (
-                <button key={v} type="button" className="block w-full rounded-lg px-2 py-1.5 text-left font-mono text-xs hover:bg-line/5" onClick={() => (insert(`{${v}}`), setVarsOpen(false))}>
+                <button key={v} type="button" className="block w-full rounded-lg px-2 py-1.5 text-left font-mono text-[13px] hover:bg-line/5" onClick={() => (insert(`{${v}}`), setVarsOpen(false))}>
                   {`{${v}}`}
                 </button>
               ))}
@@ -87,7 +87,7 @@ export function MessageEditor({ value, onChange, allowButtons = true, allowMedia
             <Film className="h-4 w-4" />
           </button>
         )}
-        <span className="ml-auto pr-2 text-[11px] text-muted">{value.text.length}/{value.mediaId ? 1024 : 4096}</span>
+        <span className="ml-auto pr-2 text-[13px] text-muted">{value.text.length}/{value.mediaId ? 1024 : 4096}</span>
       </div>
       <textarea
         ref={ref}
@@ -106,7 +106,7 @@ export function MessageEditor({ value, onChange, allowButtons = true, allowMedia
           ) : (
             <video src={value.media.url} muted autoPlay loop className="h-12 w-16 rounded-lg object-cover" />
           )}
-          <span className="flex-1 text-xs text-muted">{value.media.kind === 'ANIMATION' ? 'GIF / анимация' : value.media.kind === 'VIDEO' ? 'Видео' : 'Изображение'}</span>
+          <span className="flex-1 text-[13px] text-muted">{value.media.kind === 'ANIMATION' ? 'GIF / анимация' : value.media.kind === 'VIDEO' ? 'Видео' : 'Изображение'}</span>
           <button type="button" onClick={() => onChange({ ...value, mediaId: null, media: null })} className="rounded-lg p-1.5 text-muted hover:text-bad">
             <X className="h-4 w-4" />
           </button>
@@ -158,12 +158,12 @@ export function EmojiPicker({ open, onClose, onPick }: { open: boolean; onClose(
   return (
     <Modal open={open} onClose={onClose} title="Premium Emoji">
       <Input placeholder="Поиск" value={q} onChange={(e) => setQ(e.target.value)} />
-      <p className="mt-2 text-xs text-muted">
+      <p className="mt-2 text-[13px] text-muted">
         Premium Emoji отправляются как entity <code>custom_emoji</code>. Если Telegram не разрешит их боту в конкретном чате, будет показан обычный эмодзи-заменитель.
       </p>
       <div className="scroll-thin mt-4 max-h-[50dvh] overflow-y-auto">
         {loading && <Spinner />}
-        {!loading && !list.length && <p className="py-8 text-center text-sm text-muted">Эмодзи ещё не импортированы администратором</p>}
+        {!loading && !list.length && <p className="py-8 text-center text-[15px] text-muted">Эмодзи ещё не импортированы администратором</p>}
         {cats.map((c) => (
           <div key={c} className="mb-4">
             <div className="label">{c}</div>
@@ -222,16 +222,16 @@ export function MediaPicker({ open, onClose, onPick, only }: { open: boolean; on
         <Button loading={uploading} icon={<Upload className="h-4 w-4" />} onClick={() => fileRef.current?.click()}>
           Загрузить
         </Button>
-        <label className="flex items-center gap-2 text-xs text-muted">
+        <label className="flex items-center gap-2 text-[13px] text-muted">
           <input type="checkbox" checked={asAnimation} onChange={(e) => setAsAnimation(e.target.checked)} />
           MP4 без звука отправлять как GIF
         </label>
       </div>
-      <p className="mb-3 text-xs text-muted">Файлы отправляются в Telegram один раз, затем используется сохранённый file_id — повторная отправка мгновенная.</p>
+      <p className="mb-3 text-[13px] text-muted">Файлы отправляются в Telegram один раз, затем используется сохранённый file_id — повторная отправка мгновенная.</p>
       {loading ? (
         <Spinner />
       ) : !data?.length ? (
-        <div className="py-10 text-center text-sm text-muted">
+        <div className="py-10 text-center text-[15px] text-muted">
           <ImageIcon className="mx-auto mb-2 h-6 w-6" />
           Пока нет загруженных файлов
         </div>
@@ -245,7 +245,7 @@ export function MediaPicker({ open, onClose, onPick, only }: { open: boolean; on
               ) : (
                 <video src={m.url} muted loop autoPlay playsInline className="h-full w-full object-cover" />
               )}
-              <span className="absolute bottom-1 left-1 rounded bg-black/60 px-1.5 text-[10px]">{m.kind === 'ANIMATION' ? 'GIF' : m.kind === 'VIDEO' ? 'VIDEO' : 'IMG'}</span>
+              <span className="absolute bottom-1 left-1 rounded bg-black/60 px-1.5 text-[13px]">{m.kind === 'ANIMATION' ? 'GIF' : m.kind === 'VIDEO' ? 'VIDEO' : 'IMG'}</span>
             </button>
           ))}
         </div>

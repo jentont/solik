@@ -12,6 +12,7 @@ import { MediaPicker, MessageEditor, type MessageValue } from '@/components/Mess
 import { TelegramPreview } from '@/components/TelegramPreview';
 import { GiftSticker } from '@/components/GiftSticker';
 import { Badge, Button, Card, CardTitle, Empty, ErrorState, Input, Loading, PageHeader, Select, StatusBadge, Table, Tabs, Toggle, useConfirm } from '@/components/ui';
+import { StarIcon } from '@/components/StarIcon';
 
 type Tab = 'overview' | 'profile' | 'chats' | 'sms' | 'subscription' | 'business';
 
@@ -40,7 +41,7 @@ export default function BotPage() {
 
   return (
     <>
-      <Link href="/bots" className="mb-4 inline-flex items-center gap-1 text-sm text-muted hover:text-fg">
+      <Link href="/bots" className="mb-4 inline-flex items-center gap-1 text-[15px] text-muted hover:text-fg">
         <ArrowLeft className="h-4 w-4" /> Мои боты
       </Link>
       <PageHeader
@@ -72,7 +73,7 @@ export default function BotPage() {
         <div className="grid gap-4 md:grid-cols-2">
           <Card>
             <CardTitle sub="Токен, webhook и права">Состояние</CardTitle>
-            <dl className="space-y-2 text-sm">
+            <dl className="space-y-2 text-[15px]">
               <Row k="Статус">
                 <StatusBadge status={bot.status} />
               </Row>
@@ -144,8 +145,8 @@ function StarsBalance({ botId }: { botId: string }) {
   return (
     <Card>
       <CardTitle sub="Из этого баланса бот покупает подарки победителям (sendGift)">Баланс Stars бота</CardTitle>
-      <div className="font-display text-4xl font-bold text-gold">⭐ {data ? fmtNum(data.amount) : error ? '—' : '…'}</div>
-      <p className="mt-3 text-xs text-muted">Пополнить баланс бота можно через @BotFather → Payments или переводом Stars боту. Если Stars не хватит, выдача перейдёт в «ручную» с уведомлением.</p>
+      <div className="flex items-center gap-2 font-display text-4xl font-bold text-gold"><StarIcon size={32} /> {data ? fmtNum(data.amount) : error ? '—' : '…'}</div>
+      <p className="mt-3 text-[13px] text-muted">Пополнить баланс бота можно через @BotFather → Payments или переводом Stars боту. Если Stars не хватит, выдача перейдёт в «ручную» с уведомлением.</p>
     </Card>
   );
 }
@@ -154,7 +155,7 @@ function ProfileEditor({ bot, onSaved }: { bot: any; onSaved(): void }) {
   const [name, setName] = useState(bot.name ?? '');
   const [description, setDescription] = useState(bot.description ?? '');
   const [shortDescription, setShort] = useState(bot.shortDescription ?? '');
-  const [welcome, setWelcome] = useState<MessageValue>({ text: bot.welcomeText ?? 'Привет, {first_name}! 👋', mediaId: bot.welcomeMediaId, media: null, buttons: [] });
+  const [welcome, setWelcome] = useState<MessageValue>({ text: bot.welcomeText ?? 'Привет, {first_name}!', mediaId: bot.welcomeMediaId, media: null, buttons: [] });
   const [menu, setMenu] = useState<{ text: string; url: string }[]>(bot.menuButtons ?? []);
   const [commands, setCommands] = useState<{ command: string; description: string }[]>(bot.commands?.length ? bot.commands : [{ command: 'start', description: 'Начать' }]);
   const [avatarOpen, setAvatarOpen] = useState(false);
@@ -205,7 +206,7 @@ function ProfileEditor({ bot, onSaved }: { bot: any; onSaved(): void }) {
                 // eslint-disable-next-line @next/next/no-img-element
                 <img src={avatar.url} alt="" className="h-14 w-14 rounded-full object-cover" />
               ) : (
-                <div className="flex h-14 w-14 items-center justify-center rounded-full bg-elevated text-xl">{name[0] ?? '🤖'}</div>
+                <div className="flex h-14 w-14 items-center justify-center rounded-full bg-elevated text-xl">{name[0] ?? 'B'}</div>
               )}
               <Button size="sm" variant="secondary" onClick={() => setAvatarOpen(true)}>
                 Аватар
@@ -271,7 +272,7 @@ function ChatsTab({ chats, channels, reload, confirm }: { chats: any[]; channels
           <tr key={c.id}>
             <td className="px-3 py-2.5">
               <div className="font-medium">{c.title}</div>
-              <div className="font-mono text-xs text-muted">{c.chatId}</div>
+              <div className="font-mono text-[13px] text-muted">{c.chatId}</div>
             </td>
             <td className="px-3">{c.linkedChannelChatId ? <Badge tone="accent">Обсуждение</Badge> : <Badge>{c.kind === 'GROUP' ? 'Группа' : 'Супергруппа'}</Badge>}</td>
             <td className="px-3">
@@ -279,7 +280,7 @@ function ChatsTab({ chats, channels, reload, confirm }: { chats: any[]; channels
             </td>
             <td className="px-3 tabular-nums">{c.memberCount ?? '—'}</td>
             <td className="px-3 tabular-nums">{fmtNum(c.messagesProcessed)}</td>
-            <td className="px-3 text-xs text-muted">{fmtDate(c.lastActivityAt)}</td>
+            <td className="px-3 text-[13px] text-muted">{fmtDate(c.lastActivityAt)}</td>
             <td className="whitespace-nowrap px-3 text-right">
               <Button size="sm" variant="ghost" onClick={() => refresh(c.id)}>
                 <RefreshCw className="h-3.5 w-3.5" />
@@ -294,18 +295,18 @@ function ChatsTab({ chats, channels, reload, confirm }: { chats: any[]; channels
           <tr key={c.id}>
             <td className="px-3 py-2.5">
               <div className="font-medium">{c.title}</div>
-              <div className="text-xs text-muted">{c.username ? `@${c.username}` : c.chatId}</div>
+              <div className="text-[13px] text-muted">{c.username ? `@${c.username}` : c.chatId}</div>
             </td>
             <td className="px-3">
               <Badge tone="warn">Канал</Badge>
-              {c.discussionChat && <div className="mt-1 text-[11px] text-muted">💬 {c.discussionChat.title}</div>}
+              {c.discussionChat && <div className="mt-1 text-[13px] text-muted">Обсуждение: {c.discussionChat.title}</div>}
             </td>
             <td className="px-3">
               <StatusBadge status={c.status} />
             </td>
             <td className="px-3 tabular-nums">{c.memberCount ?? '—'}</td>
             <td className="px-3 tabular-nums">{fmtNum(c.postsProcessed)}</td>
-            <td className="px-3 text-xs text-muted">{fmtDate(c.lastActivityAt)}</td>
+            <td className="px-3 text-[13px] text-muted">{fmtDate(c.lastActivityAt)}</td>
             <td className="whitespace-nowrap px-3 text-right">
               <Button size="sm" variant="ghost" onClick={() => refresh(c.id)}>
                 <RefreshCw className="h-3.5 w-3.5" />
@@ -317,7 +318,7 @@ function ChatsTab({ chats, channels, reload, confirm }: { chats: any[]; channels
           </tr>
         ))}
       </Table>
-      <p className="text-xs text-muted">Для «Первого комментария» и SMS по комментариям добавьте бота администратором и в канал, и в его группу обсуждения.</p>
+      <p className="text-[13px] text-muted">Для «Первого комментария» и SMS по комментариям добавьте бота администратором и в канал, и в его группу обсуждения.</p>
     </div>
   );
 }
@@ -347,7 +348,7 @@ function SmsPrizes({ bot, onSaved }: { bot: any; onSaved(): void }) {
         ))}
       </Select>
       <div className="label mt-5">Очередь призов по позициям</div>
-      <p className="mb-2 text-xs text-muted">Например: 1-й — Teddy Bear, 5-й — Premium, 10-й — Stars, 100-й — NFT.</p>
+      <p className="mb-2 text-[13px] text-muted">Например: 1-й — Teddy Bear, 5-й — Premium, 10-й — Stars, 100-й — NFT.</p>
       <div className="space-y-2">
         {queue.map((q, i) => (
           <div key={i} className="flex gap-2">
@@ -404,9 +405,9 @@ function SubscriptionTab({ sub, reload, confirm }: { sub: any; reload(): void; c
     <div className="grid gap-4 md:grid-cols-2">
       <Card>
         <CardTitle>
-          {sub.plan.name} · {sub.priceStars} ⭐ / {sub.plan.periodDays} дн.
+          {sub.plan.name} · {sub.priceStars} Stars / {sub.plan.periodDays} дн.
         </CardTitle>
-        <dl className="space-y-2 text-sm">
+        <dl className="space-y-2 text-[15px]">
           <Row k="Статус">
             <StatusBadge status={sub.status} />
           </Row>
@@ -418,7 +419,7 @@ function SubscriptionTab({ sub, reload, confirm }: { sub: any; reload(): void; c
           {sub.subscriptionChargeId ? (
             <Toggle checked={sub.autoRenew && sub.status !== 'CANCELLED'} onChange={toggle} label="Автопродление Telegram Stars" hint="Списание раз в 30 дней, отмена в один клик" />
           ) : (
-            <p className="text-xs text-muted">Автопродление не подключено — продлевайте вручную.</p>
+            <p className="text-[13px] text-muted">Автопродление не подключено — продлевайте вручную.</p>
           )}
         </div>
         <Button variant="gold" className="mt-4 w-full" onClick={renew}>
@@ -428,15 +429,15 @@ function SubscriptionTab({ sub, reload, confirm }: { sub: any; reload(): void; c
       <Card>
         <CardTitle>История платежей</CardTitle>
         {!sub.payments.length ? (
-          <p className="text-sm text-muted">Платежей пока нет</p>
+          <p className="text-[15px] text-muted">Платежей пока нет</p>
         ) : (
-          <ul className="space-y-2 text-sm">
+          <ul className="space-y-2 text-[15px]">
             {sub.payments.map((p: any) => (
               <li key={p.id} className="flex justify-between border-b border-line/[0.05] pb-2">
                 <span>
                   {fmtDay(p.paidAt)} {p.isRecurring && <Badge>авто</Badge>} {p.refunded && <Badge tone="bad">возврат</Badge>}
                 </span>
-                <span className="text-gold">⭐ {p.amount}</span>
+                <span className="inline-flex items-center gap-1 text-gold"><StarIcon size={14} />{p.amount}</span>
               </li>
             ))}
           </ul>
@@ -460,7 +461,7 @@ function BusinessTab({ connections, botUsername, reload }: { connections: any[];
     <div className="space-y-4">
       <Card>
         <CardTitle sub="Для выдачи коллекционных (NFT) подарков из вашего аккаунта">Как подключить</CardTitle>
-        <ol className="list-decimal space-y-1 pl-5 text-sm text-muted">
+        <ol className="list-decimal space-y-1 pl-5 text-[15px] text-muted">
           <li>Нужен Telegram Premium.</li>
           <li>Настройки Telegram → Telegram для бизнеса → Чат-боты.</li>
           <li>
@@ -489,17 +490,17 @@ function BusinessTab({ connections, botUsername, reload }: { connections: any[];
             >
               Аккаунт ID {c.tgUserId} {c.isEnabled ? <Badge tone="ok">активно</Badge> : <Badge tone="bad">отключено</Badge>}
             </CardTitle>
-            <div className="mb-3 flex flex-wrap gap-2 text-xs">
+            <div className="mb-3 flex flex-wrap gap-2 text-[13px]">
               <Badge tone={c.canViewGifts ? 'ok' : 'bad'}>Просмотр подарков</Badge>
               <Badge tone={c.canTransferGifts ? 'ok' : 'bad'}>Передача подарков</Badge>
               <Badge tone={c.canTransferStars ? 'ok' : 'muted'}>Перевод Stars</Badge>
             </div>
             <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
               {c.ownedGifts.map((g: any) => (
-                <div key={g.id} className="rounded-xl bg-elevated/50 p-3 text-sm">
+                <div key={g.id} className="rounded-xl bg-elevated/50 p-3 text-[15px]">
                   <GiftSticker gift={{ name: g.name }} size={56} />
                   <div className="mt-2 truncate font-medium">{g.name}</div>
-                  <div className="mt-1 text-xs text-muted">{g.isUnique ? (g.canBeTransferred ? `Можно передать${g.transferStarCount ? ` · ${g.transferStarCount}⭐` : ''}` : 'Передача недоступна') : 'Обычный'}</div>
+                  <div className="mt-1 text-[13px] text-muted">{g.isUnique ? (g.canBeTransferred ? `Можно передать${g.transferStarCount ? ` · ${g.transferStarCount} Stars` : ''}` : 'Передача недоступна') : 'Обычный'}</div>
                 </div>
               ))}
             </div>

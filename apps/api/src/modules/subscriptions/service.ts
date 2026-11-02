@@ -109,7 +109,7 @@ export async function handleSubscriptionPayment(from: TgUser, p: TgSuccessfulPay
   await mainApi
     .sendMessage(
       from.id,
-      `✅ Оплата получена: ${p.total_amount} ⭐\nПодписка активна до <b>${result.periodEnd!.toLocaleDateString('ru-RU')}</b>.${
+      `Оплата получена: ${p.total_amount} Stars\nПодписка активна до <b>${result.periodEnd!.toLocaleDateString('ru-RU')}</b>.${
         result.botId ? '' : '\n\nТеперь подключите своего бота: отправьте /newbot и токен от @BotFather или откройте панель.'
       }`,
     )
@@ -147,8 +147,8 @@ export async function runSubscriptionMaintenance(now = new Date()) {
       .sendMessage(
         s.owner.telegramId,
         renewing
-          ? `ℹ️ Подписка на бота ${s.bot ? '@' + s.bot.username : ''} будет автоматически продлена ${s.periodEnd!.toLocaleDateString('ru-RU')} (${s.priceStars} ⭐).`
-          : `⏳ Подписка на бота ${s.bot ? '@' + s.bot.username : ''} заканчивается ${s.periodEnd!.toLocaleDateString('ru-RU')}. Продлите её в панели, чтобы бот продолжил работу.`,
+          ? `Подписка на бота ${s.bot ? '@' + s.bot.username : ''} будет автоматически продлена ${s.periodEnd!.toLocaleDateString('ru-RU')} (${s.priceStars} Stars).`
+          : `Подписка на бота ${s.bot ? '@' + s.bot.username : ''} заканчивается ${s.periodEnd!.toLocaleDateString('ru-RU')}. Продлите её в панели, чтобы бот продолжил работу.`,
       )
       .catch(() => undefined);
     await prisma.botSubscription.update({ where: { id: s.id }, data: { notifiedExpiringAt: now } });
@@ -162,7 +162,7 @@ export async function runSubscriptionMaintenance(now = new Date()) {
     const graceUntil = new Date(s.periodEnd!.getTime() + s.plan.graceDays * DAY);
     await prisma.botSubscription.update({ where: { id: s.id }, data: { status: 'GRACE', graceUntil } });
     await mainApi
-      .sendMessage(s.owner.telegramId, `⚠️ Подписка закончилась. Бот работает в льготном режиме до ${graceUntil.toLocaleDateString('ru-RU')}. Продлите подписку в панели.`)
+      .sendMessage(s.owner.telegramId, `Подписка закончилась. Бот работает в льготном режиме до ${graceUntil.toLocaleDateString('ru-RU')}. Продлите подписку в панели.`)
       .catch(() => undefined);
   }
 
@@ -174,7 +174,7 @@ export async function runSubscriptionMaintenance(now = new Date()) {
     ]);
     await audit('subscription.expired', { entity: 'BotSubscription', entityId: s.id, level: 'warn' });
     await mainApi
-      .sendMessage(s.owner.telegramId, '⛔ Подписка истекла. Данные, конкурсы и история сохранены, но новые конкурсы недоступны. Продлите подписку, чтобы восстановить работу бота.')
+      .sendMessage(s.owner.telegramId, 'Подписка истекла. Данные, конкурсы и история сохранены, но новые конкурсы недоступны. Продлите подписку, чтобы восстановить работу бота.')
       .catch(() => undefined);
   }
   return { notified: expiring.length, grace: ended.length, expired: expired.length };

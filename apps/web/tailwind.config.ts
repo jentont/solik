@@ -15,6 +15,7 @@ export default {
         gold: 'rgb(var(--gold) / <alpha-value>)',
         sky: 'rgb(var(--sky) / <alpha-value>)',
         ribbon: 'rgb(var(--ribbon) / <alpha-value>)',
+        pink: 'rgb(var(--pink) / <alpha-value>)',
         ok: 'rgb(var(--ok) / <alpha-value>)',
         warn: 'rgb(var(--warn) / <alpha-value>)',
         bad: 'rgb(var(--bad) / <alpha-value>)',

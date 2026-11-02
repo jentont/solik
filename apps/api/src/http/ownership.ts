@@ -1,5 +1,8 @@
-import { notFound } from '../lib/errors.js';
+import type { TelegramBot } from '@prisma/client';
+import { forbidden, notFound } from '../lib/errors.js';
 import { prisma } from '../lib/prisma.js';
+import { redis } from '../lib/redis.js';
+import { apiForBot } from '../telegram/registry.js';
 
 // Every lookup is scoped by owner: a foreign id behaves exactly like a missing one (404),
 // so ids of other users' resources can't be probed.
@@ -39,4 +42,20 @@ export async function ownMedia(userId: string, mediaId: string) {
   const m = await prisma.mediaFile.findFirst({ where: { id: mediaId, ownerId: userId } });
   if (!m) throw notFound('Файл не найден');
   return m;
+}
+
+/**
+ * Live check with Telegram that the user still administers the chat/channel right now.
+ * DB ownership only says who connected it first; this stops posting into someone else's channel
+ * (or one you have since lost admin rights in). Cached for 60 s.
+ */
+export async function assertTgAdmin(bot: Pick<TelegramBot, 'id' | 'tokenEncrypted' | 'isPlatform'>, tgChatId: bigint, userTgId: bigint | number | string, where = 'этом чате') {
+  const key = `tgadmin:${bot.id}:${tgChatId}:${userTgId}`;
+  let ok = (await redis().get(key)) === '1';
+  if (!ok) {
+    const member = await apiForBot(bot).getChatMember(tgChatId, BigInt(userTgId)).catch(() => null);
+    ok = !!member && (member.status === 'creator' || member.status === 'administrator');
+    if (ok) await redis().set(key, '1', 'EX', 60);
+  }
+  if (!ok) throw forbidden(`Конкурсы можно публиковать только там, где вы администратор. В ${where} вы не админ.`);
 }

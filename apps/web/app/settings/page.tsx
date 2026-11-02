@@ -27,10 +27,10 @@ export default function SettingsPage() {
       <div className="grid gap-6 lg:grid-cols-3">
         <Card>
           <CardTitle>Аккаунт</CardTitle>
-          <div className="space-y-1 text-sm">
+          <div className="space-y-1 text-[15px]">
             <div>{user?.firstName}</div>
             <div className="text-muted">{user?.username ? `@${user.username}` : ''}</div>
-            <div className="font-mono text-xs text-muted">Telegram ID {user?.telegramId}</div>
+            <div className="font-mono text-[13px] text-muted">Telegram ID {user?.telegramId}</div>
             <div className="pt-2">
               <Badge tone={user?.role === 'USER' ? 'muted' : 'warn'}>{user?.role === 'OWNER' ? 'Владелец платформы' : user?.role === 'ADMIN' ? 'Администратор' : 'Пользователь'}</Badge>
             </div>
@@ -46,7 +46,7 @@ export default function SettingsPage() {
           <div className="grid gap-3 sm:grid-cols-2">
             <div className="rounded-xl border border-line/10 p-4">
               <div className="font-display font-semibold">Free</div>
-              <div className="mt-1 text-sm text-muted">Бот SOLIK в ваших чатах: все типы конкурсов, SMS Counter, подарки, AI, аналитика.</div>
+              <div className="mt-1 text-[15px] text-muted">Бот SOLIK в ваших чатах: все типы конкурсов, SMS Counter, подарки, AI, аналитика.</div>
               <Badge tone="ok" className="mt-3">
                 Активен
               </Badge>
@@ -56,9 +56,9 @@ export default function SettingsPage() {
                 <div className="flex items-center gap-2 font-display font-semibold">
                   <Crown className="h-4 w-4 text-gold" /> {p.name}
                 </div>
-                <div className="mt-1 text-sm text-muted">Собственный бот под вашим брендом. За одного бота.</div>
+                <div className="mt-1 text-[15px] text-muted">Собственный бот под вашим брендом. За одного бота.</div>
                 <div className="mt-3 font-display text-2xl font-bold text-gold">
-                  {p.priceStars} ⭐ <span className="text-sm font-normal text-muted">/ {p.periodDays} дн.</span>
+                  {p.priceStars} Stars <span className="text-[15px] font-normal text-muted">/ {p.periodDays} дн.</span>
                 </div>
                 <Button variant="gold" size="sm" className="mt-3" onClick={() => buy(p.id)}>
                   Оформить
@@ -87,15 +87,15 @@ export default function SettingsPage() {
                 )}
               </td>
               <td className="px-3">
-                {s.plan.name} · {s.priceStars} ⭐
+                {s.plan.name} · {s.priceStars} Stars
               </td>
               <td className="px-3">
                 <StatusBadge status={s.status} />
               </td>
-              <td className="px-3 text-xs text-muted">
+              <td className="px-3 text-[13px] text-muted">
                 {fmtDay(s.periodStart)} — {fmtDay(s.periodEnd)}
               </td>
-              <td className="px-3 text-xs">{s.subscriptionChargeId ? (s.autoRenew && s.status !== 'CANCELLED' ? 'Включено' : 'Отменено') : 'Вручную'}</td>
+              <td className="px-3 text-[13px]">{s.subscriptionChargeId ? (s.autoRenew && s.status !== 'CANCELLED' ? 'Включено' : 'Отменено') : 'Вручную'}</td>
               <td className="px-3">{s.payments.length}</td>
             </tr>
           ))}

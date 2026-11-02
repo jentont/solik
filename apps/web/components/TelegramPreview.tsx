@@ -63,7 +63,7 @@ export function TelegramPreview({
           <div className="px-3 pb-1.5 pt-2">
             <div className="mb-0.5 text-[13px] font-semibold text-[#6ab3f3]">{botName}</div>
             {rendered ? <div className="tg-msg break-words" dangerouslySetInnerHTML={{ __html: rendered }} /> : <div className="text-[#7f91a4]">Пустое сообщение</div>}
-            <div className="mt-0.5 text-right text-[11px] text-[#6d7f8f]">{new Date().toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })}</div>
+            <div className="mt-0.5 text-right text-[13px] text-[#6d7f8f]">{new Date().toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })}</div>
           </div>
         </div>
         {rows.map((row, i) => (
@@ -73,7 +73,7 @@ export function TelegramPreview({
               .map((b, j) => (
                 <div key={j} className="flex-1 truncate rounded-lg bg-[#182533]/80 px-2 py-2 text-center text-[13px] font-medium text-white backdrop-blur">
                   {b.text}
-                  {b.url && <span className="ml-1 text-[10px] opacity-60">↗</span>}
+                  {b.url && <span className="ml-1 text-[13px] opacity-60">↗</span>}
                 </div>
               ))}
           </div>

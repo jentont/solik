@@ -77,7 +77,7 @@ function Wizard() {
           channelPostId: postId,
           type,
           title,
-          config,
+          config: type === 'STARS_AUCTION' ? { bidMode: 'paid_messages', ...config } : config,
           winnersCount,
           startsAt: startsAt ? new Date(startsAt).toISOString() : null,
           endsAt: endsAt ? new Date(endsAt).toISOString() : null,
@@ -89,7 +89,7 @@ function Wizard() {
       });
       if (start) {
         await api(`/api/contests/${contest.id}/start`, { body: {} });
-        toast.success(startsAt && new Date(startsAt) > new Date() ? 'Конкурс запланирован' : 'Конкурс опубликован 🎉');
+        toast.success(startsAt && new Date(startsAt) > new Date() ? 'Конкурс запланирован' : 'Конкурс опубликован');
       } else toast.success('Черновик сохранён');
       router.push(`/contests/${contest.id}`);
     } catch (e) {
@@ -110,11 +110,11 @@ function Wizard() {
             key={s}
             onClick={() => i < step && setStep(i)}
             className={cn(
-              'flex shrink-0 items-center gap-2 rounded-full border px-3 py-1.5 text-xs transition',
-              i === step ? 'border-accent bg-accent/15 text-fg' : i < step ? 'border-line/10 text-fg' : 'border-line/[0.06] text-muted',
+              'flex min-h-[40px] shrink-0 items-center gap-2 rounded-full border px-3.5 text-[14px] font-semibold transition',
+              i === step ? 'border-transparent bg-white text-[#141416]' : i < step ? 'border-white/15 text-fg' : 'border-white/[0.08] text-muted',
             )}
           >
-            <span className={cn('flex h-4 w-4 items-center justify-center rounded-full text-[10px]', i < step ? 'bg-ok text-black' : 'bg-line/10')}>{i < step ? <Check className="h-2.5 w-2.5" /> : i + 1}</span>
+            <span className={cn('flex h-6 w-6 items-center justify-center rounded-full text-[12px]', i < step ? 'bg-ok text-black' : i === step ? 'bg-[#141416] text-white' : 'bg-white/10')}>{i < step ? <Check className="h-3.5 w-3.5" /> : i + 1}</span>
             {s}
           </button>
         ))}
@@ -125,11 +125,11 @@ function Wizard() {
           {step === 0 && (
             <div className="grid gap-3 md:grid-cols-2">
               {bots.data?.map((b) => (
-                <button key={b.id} onClick={() => setBotId(b.id)} className={cn('card p-4 text-left transition', botId === b.id ? 'border-accent shadow-glow' : 'hover:border-line/20')}>
-                  <div className="flex items-center gap-2 font-medium">
+                <button key={b.id} onClick={() => setBotId(b.id)} className={cn('card press p-4 text-left transition', botId === b.id ? 'border-gold shadow-[0_0_0_3px_rgba(255,194,61,0.3)]' : 'hover:border-white/25')}>
+                  <div className="flex items-center gap-2 text-[17px] font-semibold">
                     @{b.username} {b.isPlatform ? <Badge tone="accent">SOLIK</Badge> : <Badge tone="warn">Свой бот</Badge>}
                   </div>
-                  <div className="mt-1 text-xs text-muted">
+                  <div className="mt-1 text-[14px] text-muted">
                     {b.chats.length} чатов · {b.channels.length} каналов
                   </div>
                 </button>
@@ -144,16 +144,16 @@ function Wizard() {
               {Object.entries(CONTEST_TYPES)
                 .filter(([k]) => k !== 'SMS_COUNTER')
                 .map(([k, v]) => (
-                  <button key={k} onClick={() => setType(k)} className={cn('card p-4 text-left transition', type === k ? 'border-accent shadow-glow' : 'hover:border-line/20')}>
-                    <TypeIcon type={k} size={40} />
-                    <div className="mt-2 font-medium">{v.label}</div>
-                    <div className="mt-1 text-xs text-muted">{v.hint}</div>
+                  <button key={k} onClick={() => setType(k)} className={cn('card press p-4 text-left transition', type === k ? 'border-gold shadow-[0_0_0_3px_rgba(255,194,61,0.3)]' : 'hover:border-white/25')}>
+                    <TypeIcon type={k} size={48} />
+                    <div className="mt-3 font-display text-[17px] font-extrabold">{v.label}</div>
+                    <div className="mt-1 text-[15px] leading-snug text-muted">{v.hint}</div>
                   </button>
                 ))}
-              <button onClick={() => router.push('/sms')} className="card p-4 text-left hover:border-line/20">
-                <TypeIcon type="SMS_COUNTER" size={40} />
-                <div className="mt-2 font-medium">SMS Counter</div>
-                <div className="mt-1 text-xs text-muted">Запускается в разделе SMS Counter или командой .sms в чате</div>
+              <button onClick={() => router.push('/sms')} className="card press p-4 text-left hover:border-white/25">
+                <TypeIcon type="SMS_COUNTER" size={48} />
+                <div className="mt-3 font-display text-[17px] font-extrabold">SMS Counter</div>
+                <div className="mt-1 text-[15px] leading-snug text-muted">Запускается в разделе SMS Counter или командой .sms в чате</div>
               </button>
             </div>
           )}
@@ -180,7 +180,7 @@ function Wizard() {
             <div className="grid gap-6 lg:grid-cols-2">
               <Card>
                 <CardTitle>Сводка</CardTitle>
-                <dl className="space-y-2 text-sm">
+                <dl className="space-y-2 text-[15px]">
                   {[
                     ['Бот', `@${bot?.username}`],
                     ['Тип', t.label],
@@ -199,9 +199,9 @@ function Wizard() {
               <div>
                 <div className="label">Так пост будет выглядеть в Telegram</div>
                 <TelegramPreview
-                  text={post.text || `🎁 <b>${title}</b>\n\nПриз: <b>${prizeName}</b>\nУчаствуйте!`}
+                  text={post.text || `<b>${title}</b>\n\nПриз: <b>${prizeName}</b>\nУчаствуйте!`}
                   media={post.media}
-                  buttons={[...(['RANDOM', 'GIFTS', 'NFT'].includes(type) ? [[{ text: config.joinButtonText || '🎁 Участвовать' }]] : []), ...(type === 'STARS_AUCTION' && config.bidMode !== 'paid_messages' ? [[{ text: '⭐ Перебить ставку' }]] : []), ...post.buttons.map((b) => [b])]}
+                  buttons={[...(['RANDOM', 'GIFTS', 'NFT'].includes(type) ? [[{ text: config.joinButtonText || 'Участвовать' }]] : []), ...(type === 'STARS_AUCTION' && config.bidMode === 'invoice' ? [[{ text: 'Перебить ставку' }]] : []), ...post.buttons.map((b) => [b])]}
                   botName={bot?.name}
                   vars={{ contest_name: title, prize_name: prizeName }}
                 />
@@ -213,7 +213,7 @@ function Wizard() {
             <Card className="max-w-xl text-center">
               <TypeIcon type={type} size={56} className="mx-auto mb-4" />
               <h3 className="font-display text-xl font-semibold">{title}</h3>
-              <p className="mt-2 text-sm text-muted">Бот опубликует пост и начнёт отслеживать участников. Убедитесь, что он администратор с правом публикации.</p>
+              <p className="mt-2 text-[15px] text-muted">Бот опубликует пост и начнёт отслеживать участников. Убедитесь, что он администратор с правом публикации.</p>
               <div className="mt-6 flex flex-col gap-2 sm:flex-row sm:justify-center">
                 <Button variant="secondary" loading={saving} onClick={() => submit(false)}>
                   Сохранить черновик
@@ -253,8 +253,8 @@ function TargetStep({ bot, type, target, setTarget, postId, setPostId }: any) {
           <div className="label">Группы</div>
           <div className="grid gap-2 sm:grid-cols-2">
             {bot.chats.map((c: any) => (
-              <button key={c.id} onClick={() => setTarget({ chatId: c.id })} className={cn('card p-3 text-left text-sm', target.chatId === c.id ? 'border-accent shadow-glow' : '')}>
-                💬 {c.title} <span className="text-xs text-muted">{c.status !== 'ACTIVE' && `· ${c.status}`}</span>
+              <button key={c.id} onClick={() => setTarget({ chatId: c.id })} className={cn('card p-3 text-left text-[15px]', target.chatId === c.id ? 'border-accent shadow-glow' : '')}>
+                {c.title} <span className="text-[13px] text-muted">{c.status !== 'ACTIVE' && `· ${c.status}`}</span>
               </button>
             ))}
           </div>
@@ -265,8 +265,8 @@ function TargetStep({ bot, type, target, setTarget, postId, setPostId }: any) {
           <div className="label">Каналы</div>
           <div className="grid gap-2 sm:grid-cols-2">
             {bot.channels.map((c: any) => (
-              <button key={c.id} onClick={() => (setTarget({ channelId: c.id }), setPostId(undefined))} className={cn('card p-3 text-left text-sm', target.channelId === c.id ? 'border-accent shadow-glow' : '')}>
-                📢 {c.title}
+              <button key={c.id} onClick={() => (setTarget({ channelId: c.id }), setPostId(undefined))} className={cn('card p-3 text-left text-[15px]', target.channelId === c.id ? 'border-accent shadow-glow' : '')}>
+                {c.title}
               </button>
             ))}
           </div>
@@ -275,17 +275,17 @@ function TargetStep({ bot, type, target, setTarget, postId, setPostId }: any) {
       {needsChannel && target.channelId && (
         <Card>
           <CardTitle sub="Бот видит посты, вышедшие после его добавления в канал">Публикация</CardTitle>
-          <button onClick={() => setPostId(undefined)} className={cn('mb-2 w-full rounded-xl border p-3 text-left text-sm', !postId ? 'border-accent bg-accent/10' : 'border-line/10')}>
-            ✨ Новый пост — бот опубликует конкурс сам
+          <button onClick={() => setPostId(undefined)} className={cn('mb-2 w-full rounded-xl border p-3 text-left text-[15px]', !postId ? 'border-accent bg-accent/10' : 'border-line/10')}>
+            Новый пост — бот опубликует конкурс сам
           </button>
           {posts.data?.map((p) => (
-            <button key={p.id} onClick={() => setPostId(p.messageId)} className={cn('mb-2 w-full rounded-xl border p-3 text-left text-sm', postId === p.messageId ? 'border-accent bg-accent/10' : 'border-line/10')}>
-              <div className="flex justify-between text-xs text-muted">
+            <button key={p.id} onClick={() => setPostId(p.messageId)} className={cn('mb-2 w-full rounded-xl border p-3 text-left text-[15px]', postId === p.messageId ? 'border-accent bg-accent/10' : 'border-line/10')}>
+              <div className="flex justify-between text-[13px] text-muted">
                 <span>#{p.messageId}</span>
                 <span>{fmtDate(p.postedAt)}</span>
               </div>
               <div className="mt-1 line-clamp-2">{p.text || 'Медиа без подписи'}</div>
-              {!p.discussionMessageId && <div className="mt-1 text-xs text-warn">Ветка комментариев не найдена — добавьте бота в группу обсуждения</div>}
+              {!p.discussionMessageId && <div className="mt-1 text-[13px] text-warn">Ветка комментариев не найдена — добавьте бота в группу обсуждения</div>}
             </button>
           ))}
         </Card>
@@ -339,11 +339,11 @@ function PrizeStep({ prizes, setPrizes, winnersCount, setWinners, type }: any) {
                 <button
                   key={g.id}
                   onClick={() => setPrizes([...prizes, { kind: 'GIFT', title: g.name, businessOwnedGiftId: g.id, quantity: 1 }])}
-                  className="card p-3 text-left text-sm hover:border-accent"
+                  className="card p-3 text-left text-[15px] hover:border-accent"
                 >
                   <GiftSticker gift={{ name: g.name }} size={56} />
                   <div className="mt-2 truncate font-medium">{g.name}</div>
-                  <div className="text-xs text-ok">Передаётся из вашего аккаунта</div>
+                  <div className="text-[13px] text-ok">Передаётся из вашего аккаунта</div>
                 </button>
               ))}
             </div>
@@ -353,11 +353,11 @@ function PrizeStep({ prizes, setPrizes, winnersCount, setWinners, type }: any) {
       <div className="space-y-4">
         <Card>
           <CardTitle>Призы</CardTitle>
-          {!prizes.length && <p className="text-sm text-muted">Выберите подарок или добавьте приз</p>}
+          {!prizes.length && <p className="text-[15px] text-muted">Выберите подарок или добавьте приз</p>}
           <ul className="space-y-2">
             {prizes.map((p: Prize, i: number) => (
-              <li key={i} className="flex items-center gap-2 rounded-xl bg-elevated/50 p-2 text-sm">
-                <span className="w-5 text-center text-xs text-muted">{i + 1}</span>
+              <li key={i} className="flex items-center gap-2 rounded-xl bg-elevated/50 p-2 text-[15px]">
+                <span className="w-5 text-center text-[13px] text-muted">{i + 1}</span>
                 <input className="input h-8 flex-1 py-1" value={p.title} onChange={(e) => setPrizes(prizes.map((x: Prize, j: number) => (j === i ? { ...x, title: e.target.value } : x)))} />
                 <input type="number" min={1} title="Количество" className="input h-8 w-16 py-1" value={p.quantity} onChange={(e) => setPrizes(prizes.map((x: Prize, j: number) => (j === i ? { ...x, quantity: Number(e.target.value) || 1 } : x)))} />
                 <button onClick={() => setPrizes(prizes.filter((_: Prize, j: number) => j !== i))} className="text-muted hover:text-bad">
@@ -402,7 +402,7 @@ function PrizeStep({ prizes, setPrizes, winnersCount, setWinners, type }: any) {
             <Button size="sm" variant="secondary" className="w-full" icon={<Plus className="h-3.5 w-3.5" />} disabled={!custom.title} onClick={() => (setPrizes([...prizes, custom]), setCustom({ kind: 'STARS', title: '', quantity: 1 }))}>
               Добавить
             </Button>
-            {custom.kind === 'STARS' && <p className="text-xs text-muted">Bot API не умеет переводить Stars пользователям — выдача будет ручной, с напоминанием.</p>}
+            {custom.kind === 'STARS' && <p className="text-[13px] text-muted">Bot API не умеет переводить Stars пользователям — выдача будет ручной, с напоминанием.</p>}
           </div>
         </Card>
       </div>
@@ -419,7 +419,7 @@ function ConditionsStep({ type, config, setConfig }: { type: string; config: Rec
     <Card className="max-w-2xl space-y-4">
       {['RANDOM', 'GIFTS', 'NFT'].includes(type) && (
         <>
-          <Input label="Текст кнопки участия" value={config.joinButtonText ?? '🎁 Участвовать'} onChange={(e) => set('joinButtonText', e.target.value)} />
+          <Input label="Текст кнопки участия" value={config.joinButtonText ?? 'Участвовать'} onChange={(e) => set('joinButtonText', e.target.value)} />
           <Input
             label="Обязательные подписки (через запятую)"
             placeholder="@channel1, @channel2"
@@ -432,21 +432,21 @@ function ConditionsStep({ type, config, setConfig }: { type: string; config: Rec
       )}
       {type === 'STARS_AUCTION' && (
         <>
-          <Select label="Как делаются ставки" value={config.bidMode ?? 'invoice'} onChange={(e) => set('bidMode', e.target.value)}>
-            <option value="invoice">Оплата Stars боту (кнопка «Перебить»)</option>
-            <option value="paid_messages">Платные сообщения в чате («Сообщение за N ⭐»)</option>
+          <Select label="Как перебивают" value={config.bidMode ?? 'paid_messages'} onChange={(e) => set('bidMode', e.target.value)}>
+            <option value="paid_messages">Платным сообщением в чате</option>
+            <option value="invoice">Оплатой Stars боту по кнопке</option>
           </Select>
-          {config.bidMode === 'paid_messages' ? (
+          {(config.bidMode ?? 'paid_messages') === 'paid_messages' ? (
             <>
-              <p className="rounded-xl bg-elevated/60 p-3 text-xs text-muted">
-                Включите в настройках группы «Платные сообщения». Каждое оплаченное сообщение делает автора лидером и сбрасывает таймер. Stars получает владелец чата по правилам Telegram, обычные сообщения не засчитываются.
+              <p className="rounded-xl bg-elevated/60 p-3 text-[13px] text-muted">
+                Включите в настройках группы «Платные сообщения» (Telegram берёт Stars за каждое сообщение). Каждое платное сообщение перебивает прошлое: его автор становится лидером, таймер сбрасывается. Чьё платное сообщение последнее, когда таймер дошёл до нуля, тот и выиграл. Обычные сообщения не считаются, Stars получает владелец чата.
               </p>
-              {num('minPaidStars', 'Минимальная оплата сообщения, ⭐', 1)}
+              {num('minPaidStars', 'Минимальная цена сообщения, Stars', 1)}
             </>
           ) : (
             <>
-              {num('startBid', 'Начальная ставка, ⭐', 10)}
-              {num('minStep', 'Минимальная перебивка, ⭐', 1)}
+              {num('startBid', 'Начальная ставка, Stars', 10)}
+              {num('minStep', 'Минимальная перебивка, Stars', 1)}
               <Toggle checked={config.refundOutbid ?? false} onChange={(v) => set('refundOutbid', v)} label="Возвращать Stars перебитым участникам" hint="Классический аукцион: платит только победитель" />
             </>
           )}
@@ -455,14 +455,14 @@ function ConditionsStep({ type, config, setConfig }: { type: string; config: Rec
             <option value="messages">Отдельные сообщения 10…1</option>
             <option value="edit">Одно сообщение, обновляется</option>
           </Select>
-          <p className="text-xs text-muted">Предупреждения отправляются за 60 и 30 секунд. Все платежи проверяются и пишутся в БД, повторные webhook-запросы игнорируются.</p>
+          <p className="text-[13px] text-muted">Предупреждения отправляются за 60 и 30 секунд. Все платежи проверяются и пишутся в БД, повторные webhook-запросы игнорируются.</p>
         </>
       )}
       {type === 'FIRST_COMMENT' && (
         <>
           <Toggle checked={config.countAdmins ?? false} onChange={(v) => set('countAdmins', v)} label="Учитывать администраторов" />
           <Toggle checked={config.ignoreOwner ?? true} onChange={(v) => set('ignoreOwner', v)} label="Игнорировать владельца" />
-          <p className="text-xs text-muted">Боты игнорируются всегда. Учитываются только комментарии к выбранному посту, а победитель получает ответ прямо на свой комментарий.</p>
+          <p className="text-[13px] text-muted">Боты игнорируются всегда. Учитываются только комментарии к выбранному посту, а победитель получает ответ прямо на свой комментарий.</p>
         </>
       )}
       {type === 'MESSAGE_GIVEAWAY' && (
@@ -500,8 +500,8 @@ function ConditionsStep({ type, config, setConfig }: { type: string; config: Rec
       )}
       {type === 'DICE_777' && (
         <>
-          <p className="rounded-xl bg-elevated/60 p-3 text-sm">
-            🎰 Участники отправляют слот-машину. Три семёрки — победа. Результат генерирует Telegram, а пересланные кубики не засчитываются.
+          <p className="rounded-xl bg-elevated/60 p-3 text-[15px]">
+            Участники отправляют слот-машину. Три семёрки — победа. Результат генерирует Telegram, а пересланные кубики не засчитываются.
           </p>
           {num('cooldownSec', 'Пауза между попытками, сек', 0)}
           {num('maxSpinsPerUser', 'Максимум попыток на участника (0 — без лимита)', 0)}
@@ -541,11 +541,11 @@ function PostStep({ title, setTitle, post, setPost, prizeName, giftId, winnersCo
           </Button>
         </div>
         <MessageEditor value={post} onChange={setPost} rows={10} />
-        <p className="text-xs text-muted">Пусто — будет использован шаблон «Старт конкурса».</p>
+        <p className="text-[13px] text-muted">Пусто — будет использован шаблон «Старт конкурса».</p>
       </div>
       <div className="lg:sticky lg:top-8 lg:self-start">
         <div className="label">Предпросмотр</div>
-        <TelegramPreview text={post.text || `🎁 <b>${title || 'Конкурс'}</b>\n\nПриз: <b>${prizeName}</b>`} media={post.media} buttons={post.buttons.map((b: any) => [b])} vars={{ contest_name: title, prize_name: prizeName }} />
+        <TelegramPreview text={post.text || `<b>${title || 'Конкурс'}</b>\n\nПриз: <b>${prizeName}</b>`} media={post.media} buttons={post.buttons.map((b: any) => [b])} vars={{ contest_name: title, prize_name: prizeName }} />
       </div>
       <AiTextModal open={aiOpen} onClose={() => setAiOpen(false)} defaults={{ title, prize: prizeName, winners: winnersCount, date: endsAt ? fmtDate(endsAt) : '', channel: channelName }} onApply={(text: string) => setPost({ ...post, text })} />
       <AiImageModal open={imgOpen} onClose={() => setImgOpen(false)} defaults={{ title, prize: prizeName, giftId, date: endsAt ? fmtDate(endsAt) : '' }} onApply={(m: any) => setPost({ ...post, mediaId: m.mediaId, media: { url: m.url, kind: 'PHOTO' } })} />
@@ -604,10 +604,10 @@ function AiTextModal({ open, onClose, defaults, onApply }: any) {
                   Использовать
                 </Button>
               </div>
-              <div className="tg-msg whitespace-pre-wrap text-sm" dangerouslySetInnerHTML={{ __html: String(text).replace(/</g, '&lt;').replace(/&lt;(\/?(b|i|u|s|tg-spoiler|blockquote))>/g, '<$1>') }} />
+              <div className="tg-msg whitespace-pre-wrap text-[15px]" dangerouslySetInnerHTML={{ __html: String(text).replace(/</g, '&lt;').replace(/&lt;(\/?(b|i|u|s|tg-spoiler|blockquote))>/g, '<$1>') }} />
             </div>
           ))}
-          <p className="text-xs text-muted">Описание для анонса: {out.description}</p>
+          <p className="text-[13px] text-muted">Описание для анонса: {out.description}</p>
         </div>
       )}
     </Modal>
@@ -651,7 +651,7 @@ function AiImageModal({ open, onClose, defaults, onApply }: any) {
         <div className="mt-4">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src={out.url} alt="" className="w-full rounded-xl" />
-          {out.note && <p className="mt-2 rounded-xl bg-warn/10 px-3 py-2 text-xs text-warn">{out.note}</p>}
+          {out.note && <p className="mt-2 rounded-xl bg-warn/10 px-3 py-2 text-[13px] text-warn">{out.note}</p>}
           <Button className="mt-3 w-full" onClick={() => (onApply(out), onClose())}>
             Использовать
           </Button>

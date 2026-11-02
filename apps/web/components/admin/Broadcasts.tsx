@@ -37,7 +37,7 @@ export function AdminBroadcasts() {
   return (
     <>
       <div className="mb-4 flex items-center justify-between">
-        <p className="max-w-xl text-sm text-muted">Рассылки идут только по подключенным чатам и пользователям, которые сами начали диалог с ботом. Отправка идёт через очередь с ограничением скорости и обработкой 429 Retry-After.</p>
+        <p className="max-w-xl text-[15px] text-muted">Рассылки идут только по подключенным чатам и пользователям, которые сами начали диалог с ботом. Отправка идёт через очередь с ограничением скорости и обработкой 429 Retry-After.</p>
         <Button icon={<Plus className="h-4 w-4" />} onClick={() => setEditing({ mode: 'ALL_CHATS', filters: { onlyActiveBots: true }, viaBotId: null, text: '', buttons: [] })}>
           Новая рассылка
         </Button>
@@ -52,23 +52,23 @@ export function AdminBroadcasts() {
             const done = b.sent + b.failed + b.blocked + b.permissionLost;
             return (
               <tr key={b.id}>
-                <td className="px-3 py-2.5 text-xs">{fmtDate(b.createdAt)}</td>
-                <td className="px-3 text-xs">{MODES[b.mode]?.label}</td>
+                <td className="px-3 py-2.5 text-[13px]">{fmtDate(b.createdAt)}</td>
+                <td className="px-3 text-[13px]">{MODES[b.mode]?.label}</td>
                 <td className="px-3">
                   <StatusBadge status={b.status} />
                 </td>
                 <td className="w-48 px-3">
-                  <div className="text-xs tabular-nums">
+                  <div className="text-[13px] tabular-nums">
                     {fmtNum(b.sent)} / {fmtNum(b.total)}
                   </div>
                   <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-elevated">
                     <div className="h-full bg-ok transition-all" style={{ width: `${b.total ? (done / b.total) * 100 : 0}%` }} />
                   </div>
                 </td>
-                <td className="px-3 text-xs text-muted">
-                  ✖ {b.failed} · 🚫 {b.blocked} · 🔒 {b.permissionLost}
+                <td className="px-3 text-[13px] text-muted">
+                  ошибок {b.failed} · заблокировали {b.blocked} · нет прав {b.permissionLost}
                 </td>
-                <td className="px-3 text-xs">@{b.createdBy?.username ?? '—'}</td>
+                <td className="px-3 text-[13px]">@{b.createdBy?.username ?? '—'}</td>
                 <td className="whitespace-nowrap px-3 text-right">
                   {b.status === 'DRAFT' ? (
                     <Button size="sm" variant="secondary" onClick={() => setEditing({ ...b, buttons: b.buttons ?? [] })}>
@@ -137,7 +137,7 @@ function BroadcastEditor({ initial, onClose }: { initial: any; onClose(): void }
             <Card className="space-y-2 p-3">
               <Toggle checked={filters.onlyActiveBots ?? true} onChange={(v) => setFilters({ ...filters, onlyActiveBots: v })} label="Только активные боты" />
               {mode !== 'MAIN_BOT_CHATS' && <Toggle checked={!!filters.onlyValidSubscription} onChange={(v) => setFilters({ ...filters, onlyValidSubscription: v })} label="Только боты с действующей подпиской" />}
-              <div className="flex flex-wrap gap-2 text-xs">
+              <div className="flex flex-wrap gap-2 text-[13px]">
                 {(['GROUP', 'SUPERGROUP', 'DISCUSSION'] as const).map((k) => {
                   const on = (filters.chatKinds ?? ['GROUP', 'SUPERGROUP', 'DISCUSSION']).includes(k);
                   return (
@@ -242,7 +242,7 @@ function BroadcastEditor({ initial, onClose }: { initial: any; onClose(): void }
                 ].map(([k, v]) => (
                   <div key={k} className="rounded-xl bg-elevated/60 py-2">
                     <div className="font-display text-xl font-bold">{fmtNum(v)}</div>
-                    <div className="text-[11px] text-muted">{k}</div>
+                    <div className="text-[13px] text-muted">{k}</div>
                   </div>
                 ))}
               </div>
@@ -264,7 +264,7 @@ function ConfirmLaunch({ preview, id, mode, text, onDone }: { preview: any; id: 
         3. Запустить рассылку
       </Button>
       <Modal open={open} onClose={() => setOpen(false)} title="Подтверждение рассылки">
-        <dl className="mb-4 space-y-2 text-sm">
+        <dl className="mb-4 space-y-2 text-[15px]">
           <div className="flex justify-between">
             <dt className="text-muted">Тип</dt>
             <dd>{MODES[mode]?.label}</dd>
@@ -282,8 +282,8 @@ function ConfirmLaunch({ preview, id, mode, text, onDone }: { preview: any; id: 
             <dd>{preview?.bots}</dd>
           </div>
         </dl>
-        <div className="tg-msg mb-4 max-h-40 overflow-y-auto rounded-xl bg-elevated/60 p-3 text-sm" dangerouslySetInnerHTML={{ __html: (preview?.html ?? text).replace(/\n/g, '<br/>') }} />
-        <p className="mb-4 text-xs text-warn">Отменить уже отправленные сообщения нельзя. Рассылку можно остановить в процессе.</p>
+        <div className="tg-msg mb-4 max-h-40 overflow-y-auto rounded-xl bg-elevated/60 p-3 text-[15px]" dangerouslySetInnerHTML={{ __html: (preview?.html ?? text).replace(/\n/g, '<br/>') }} />
+        <p className="mb-4 text-[13px] text-warn">Отменить уже отправленные сообщения нельзя. Рассылку можно остановить в процессе.</p>
         <Button
           className="w-full"
           variant="gold"
@@ -326,7 +326,7 @@ function BroadcastStats({ id, onClose }: { id: string | null; onClose(): void })
                 Остановить
               </Button>
             )}
-            <span className="text-xs text-muted">
+            <span className="text-[13px] text-muted">
               Старт {fmtDate(data.startedAt)} · Завершение {fmtDate(data.finishedAt)}
             </span>
           </div>
@@ -341,7 +341,7 @@ function BroadcastStats({ id, onClose }: { id: string | null; onClose(): void })
             ].map(([k, v]) => (
               <div key={k as string} className="rounded-xl bg-elevated/60 p-2 text-center">
                 <div className="font-display text-lg font-bold">{typeof v === 'number' ? fmtNum(v) : v}</div>
-                <div className="text-[11px] text-muted">{k}</div>
+                <div className="text-[13px] text-muted">{k}</div>
               </div>
             ))}
           </div>
@@ -349,12 +349,12 @@ function BroadcastStats({ id, onClose }: { id: string | null; onClose(): void })
           <Table head={['Chat ID', 'Бот', 'Статус', 'Ошибка']} empty={!data.failures.length}>
             {data.failures.map((f: any) => (
               <tr key={f.id}>
-                <td className="px-3 py-2 font-mono text-xs">{f.chatTgId}</td>
-                <td className="px-3 text-xs">@{f.bot.username}</td>
+                <td className="px-3 py-2 font-mono text-[13px]">{f.chatTgId}</td>
+                <td className="px-3 text-[13px]">@{f.bot.username}</td>
                 <td className="px-3">
                   <StatusBadge status={f.status} />
                 </td>
-                <td className="px-3 text-xs text-muted">{f.error}</td>
+                <td className="px-3 text-[13px] text-muted">{f.error}</td>
               </tr>
             ))}
           </Table>

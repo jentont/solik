@@ -13,6 +13,7 @@ import { joinContest } from '../modules/contests/lifecycle.js';
 import { handleDice } from '../modules/dice/service.js';
 import { confirmSmsReset, handleSmsCommand, handleSmsMessage } from '../modules/sms/service.js';
 import { handleSubscriptionPayment, handleSubscriptionPreCheckout } from '../modules/subscriptions/service.js';
+import { notifyStatusText, rememberChatMember, setNotify } from '../modules/notify/service.js';
 import { handleMainCallback, handleMainPrivate } from './mainMenu.js';
 
 /**
@@ -54,12 +55,17 @@ export async function dispatchUpdate(bot: TelegramBot, u: TgUpdate) {
     // «Перебить ставку» deep link (t.me/<bot>?start=bid_<contestId>) works on every bot, the platform one included
     const bid = (msg.text ?? '').trim().match(/^\/start bid_(\w+)$/);
     if (bid && msg.from) return sendBidInvoice(api, msg.chat.id, bid[1]!, msg.from);
+    if (/^\/notify(@\w+)?$/.test((msg.text ?? '').trim()) && msg.from) {
+      const on = await setNotify(api, bot, msg.from.id, 'toggle');
+      return api.sendMessage(msg.chat.id, notifyStatusText(on));
+    }
     return bot.isPlatform ? handleMainPrivate(api, msg) : handleWhiteLabelPrivate(api, bot, msg);
   }
 
   // groups / supergroups
   if (msg.migrate_to_chat_id) return handleMigration(bot, msg);
   await touchChat(bot, msg);
+  await rememberChatMember(bot, msg).catch(() => undefined);
   if (msg.is_automatic_forward) return handleAutomaticForward(bot, msg);
   if (bot.status !== 'ACTIVE') return; // suspended/expired bots only keep tracking, no contest activity
   if (await handleSmsCommand(api, bot, msg)) return;
@@ -85,7 +91,7 @@ async function handleWhiteLabelPrivate(api: TelegramApi, bot: TelegramBot, msg: 
   const from = msg.from!;
   if (!text.startsWith('/start') && !text.startsWith('/help')) return;
   const media = bot.welcomeMediaId ? await prisma.mediaFile.findUnique({ where: { id: bot.welcomeMediaId } }) : null;
-  const html = renderTemplate(bot.welcomeText || `Привет, {first_name}! 👋\n\nЯ — ${bot.name}. Здесь проходят конкурсы и розыгрыши.`, {
+  const html = renderTemplate(bot.welcomeText || `Привет, {first_name}!\n\nЯ — ${bot.name}. Здесь проходят конкурсы и розыгрыши.`, {
     first_name: from.first_name,
     username: from.username ? `@${from.username}` : from.first_name,
     user_id: String(from.id),
@@ -98,13 +104,13 @@ async function sendBidInvoice(api: TelegramApi, chatId: number, contestId: strin
   const contest = await prisma.contest.findUnique({ where: { id: contestId }, include: { prizes: true } });
   if (!contest || contest.type !== 'STARS_AUCTION') return api.sendMessage(chatId, 'Конкурс не найден');
   const res = await createBidInvoice(api, contest, from, amount);
-  if (!res.ok) return api.sendMessage(chatId, `⚠️ ${res.reason}`);
-  const leader = contest.leaderName ? `Сейчас лидирует ${escapeHtml(contest.leaderName)} со ставкой ${contest.currentBid} ⭐.\n` : '';
-  return api.sendMessage(chatId, `⭐ <b>${escapeHtml(contest.title)}</b>\n${leader}Ваша ставка: <b>${res.amount} Stars</b>. Она засчитается сразу после оплаты.`, {
+  if (!res.ok) return api.sendMessage(chatId, res.reason);
+  const leader = contest.leaderName ? `Сейчас лидирует ${escapeHtml(contest.leaderName)} со ставкой ${contest.currentBid} Stars.\n` : '';
+  return api.sendMessage(chatId, `<b>${escapeHtml(contest.title)}</b>\n${leader}Ваша ставка: <b>${res.amount} Stars</b>. Она засчитается сразу после оплаты.`, {
     reply_markup: {
       inline_keyboard: [
-        [{ text: `Оплатить ${res.amount} ⭐`, url: res.link }],
-        [5, 10].map((plus) => ({ text: `${res.amount + plus} ⭐`, callback_data: `bidamt:${contest.id}:${res.amount + plus}` })),
+        [{ text: `Оплатить ${res.amount} Stars`, url: res.link }],
+        [5, 10].map((plus) => ({ text: `${res.amount + plus} Stars`, callback_data: `bidamt:${contest.id}:${res.amount + plus}` })),
       ],
     },
   });
@@ -120,11 +126,15 @@ async function handleCallback(api: TelegramApi, bot: TelegramBot, q: TgCallbackQ
   }
   if (data.startsWith('join:')) {
     const r = await joinContest(data.slice(5), q.from);
-    return api.answerCallbackQuery(q.id, r.ok ? (r.already ? `Вы уже участвуете (#${r.position})` : `✅ Вы участвуете! Ваш номер #${r.position}`) : r.message, !r.ok);
+    return api.answerCallbackQuery(q.id, r.ok ? (r.already ? `Вы уже участвуете (#${r.position})` : `Вы участвуете! Ваш номер #${r.position}`) : r.message, !r.ok);
   }
   if (data.startsWith('smsreset:') && q.message) {
     const text = await confirmSmsReset(api, data.slice(9), q.message, q.from.id);
     return api.answerCallbackQuery(q.id, text);
+  }
+  if (data === 'notify:off') {
+    await setNotify(api, bot, q.from.id, false);
+    return api.answerCallbackQuery(q.id, notifyStatusText(false), true);
   }
   if (data === 'noop') {
     if (q.message) await api.deleteMessage(q.message.chat.id, q.message.message_id).catch(() => undefined);

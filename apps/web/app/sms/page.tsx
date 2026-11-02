@@ -75,14 +75,14 @@ export default function SmsPage() {
                       <Link href={`/contests/${c.contest.id}`} className="font-medium hover:text-accent">
                         {c.contest.title}
                       </Link>
-                      <div className="text-xs text-muted">
+                      <div className="text-[13px] text-muted">
                         {c.contest.chat?.title} {c.threadMessageId ? '· комментарии поста' : ''}
                       </div>
                     </div>
                     <StatusBadge status={c.status} />
                   </div>
                   <div className="mt-4">
-                    <div className="mb-1 flex justify-between text-sm">
+                    <div className="mb-1 flex justify-between text-[15px]">
                       <span>
                         {c.count} / {c.target}
                       </span>
@@ -114,20 +114,20 @@ export default function SmsPage() {
                   </Link>
                 </td>
                 <td className="px-3">{c.contest.chat?.title}</td>
-                <td className="px-3 text-xs">{MODES[c.mode as keyof typeof MODES]}</td>
+                <td className="px-3 text-[13px]">{MODES[c.mode as keyof typeof MODES]}</td>
                 <td className="px-3 tabular-nums">
                   {c.count}/{c.target}
                 </td>
                 <td className="px-3">
                   <StatusBadge status={c.status} />
                 </td>
-                <td className="px-3 text-xs text-muted">{fmtDate(c.createdAt)}</td>
+                <td className="px-3 text-[13px] text-muted">{fmtDate(c.createdAt)}</td>
               </tr>
             ))}
           </Table>
           <Card className="mt-8">
             <CardTitle>Команды в чате</CardTitle>
-            <div className="grid gap-2 font-mono text-sm sm:grid-cols-2">
+            <div className="grid gap-2 font-mono text-[15px] sm:grid-cols-2">
               {[
                 ['.sms 100', 'первые 100 уникальных участников'],
                 ['.sms msg 100', 'первые 100 сообщений'],
@@ -140,11 +140,11 @@ export default function SmsPage() {
               ].map(([c, d]) => (
                 <div key={c} className="flex gap-3 rounded-lg bg-elevated/50 px-3 py-2">
                   <span className="text-accent">{c}</span>
-                  <span className="font-sans text-xs text-muted">{d}</span>
+                  <span className="font-sans text-[13px] text-muted">{d}</span>
                 </div>
               ))}
             </div>
-            <p className="mt-3 text-xs text-muted">Команда в ветке комментариев считает только комментарии этого поста. В основном чате считаются сообщения группы.</p>
+            <p className="mt-3 text-[13px] text-muted">Команда в ветке комментариев считает только комментарии этого поста. В основном чате считаются сообщения группы.</p>
           </Card>
         </>
       )}
@@ -242,7 +242,7 @@ function StartModal({ open, onClose, onStarted }: { open: boolean; onClose(): vo
           </div>
           <div>
             <div className="label">Призы</div>
-            <p className="mb-2 text-xs text-muted">Без позиции — общий приз для победителя. С позицией — очередь призов: например, 1-й — Teddy Bear, 100-й — NFT.</p>
+            <p className="mb-2 text-[13px] text-muted">Без позиции — общий приз для победителя. С позицией — очередь призов: например, 1-й — Teddy Bear, 100-й — NFT.</p>
             <div className="space-y-2">
               {prizes.map((p, i) => (
                 <div key={i} className="flex gap-2">

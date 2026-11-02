@@ -50,7 +50,7 @@ export default function LoginPage() {
           <Brand />
         </div>
         <h1 className="font-display text-2xl font-bold">Конкурсы в Telegram — в одном месте</h1>
-        <p className="mt-2 text-sm text-muted">Розыгрыши подарков, Stars и NFT, SMS Counter, перебивка, AI-посты и аналитика.</p>
+        <p className="mt-2 text-[15px] text-muted">Розыгрыши подарков, Stars и NFT, SMS Counter, перебивка, AI-посты и аналитика.</p>
         <div className="my-7 grid grid-cols-4 gap-2 text-muted">
           {[Gift, Star, Trophy, Sparkles].map((I, i) => (
             <div key={i} className="flex h-12 items-center justify-center rounded-xl bg-elevated/60">
@@ -61,10 +61,10 @@ export default function LoginPage() {
         {BOT ? (
           <div ref={box} className="flex min-h-[48px] justify-center" />
         ) : (
-          <p className="text-sm text-warn">Не удалось получить бота платформы. Проверьте MAIN_BOT_TOKEN на сервере.</p>
+          <p className="text-[15px] text-warn">Не удалось получить бота платформы. Проверьте MAIN_BOT_TOKEN на сервере.</p>
         )}
         {BOT && (
-          <p className="mt-6 text-xs text-muted">
+          <p className="mt-6 text-[13px] text-muted">
             Или откройте панель прямо в Telegram:{' '}
             <a className="text-accent" href={`https://t.me/${BOT}`}>
               @{BOT}

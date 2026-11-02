@@ -51,10 +51,10 @@ export default function TemplatesPage() {
                 className={cn('w-full rounded-xl px-3 py-2.5 text-left transition', sel?.id === t.id ? 'bg-elevated' : 'hover:bg-line/[0.03]')}
               >
                 <div className="flex items-center justify-between gap-2">
-                  <span className="truncate text-sm font-medium">{t.name}</span>
+                  <span className="truncate text-[15px] font-medium">{t.name}</span>
                   {!t.isActive && <Badge>выкл</Badge>}
                 </div>
-                <div className="text-xs text-muted">
+                <div className="text-[13px] text-muted">
                   {meta.data?.keys.find((k) => k.key === t.key)?.label} · {t.bot ? `@${t.bot.username}` : 'все боты'}
                 </div>
               </button>
@@ -63,7 +63,7 @@ export default function TemplatesPage() {
               <div className="label">Создать для события</div>
               <div className="flex flex-wrap gap-1">
                 {meta.data?.keys.map((k) => (
-                  <button key={k.key} onClick={() => startNew(k.key)} className="rounded-lg border border-line/10 px-2 py-1 text-xs text-muted hover:border-accent hover:text-fg">
+                  <button key={k.key} onClick={() => startNew(k.key)} className="rounded-lg border border-line/10 px-2 py-1 text-[13px] text-muted hover:border-accent hover:text-fg">
                     {k.label}
                   </button>
                 ))}
@@ -170,14 +170,14 @@ function Editor({ tpl, meta, bots, onSaved, onDelete }: { tpl: any; meta: Meta; 
             </Button>
           )}
         </div>
-        {tpl.updatedAt && <p className="text-xs text-muted">Изменён {fmtDate(tpl.updatedAt)}</p>}
+        {tpl.updatedAt && <p className="text-[13px] text-muted">Изменён {fmtDate(tpl.updatedAt)}</p>}
       </Card>
       <div className="xl:sticky xl:top-8 xl:self-start">
         <div className="label">Предпросмотр с тестовыми данными</div>
         <TelegramPreview text={msg.text} media={msg.media} buttons={msg.buttons.map((b) => [b])} vars={meta.sample} botName={bots.find((b) => b.id === botId)?.name} />
         <div className="mt-4 flex flex-wrap gap-1">
           {meta.variables.map((v) => (
-            <code key={v} className="rounded bg-elevated px-1.5 py-0.5 text-[11px] text-muted">{`{${v}}`}</code>
+            <code key={v} className="rounded bg-elevated px-1.5 py-0.5 text-[13px] text-muted">{`{${v}}`}</code>
           ))}
         </div>
       </div>

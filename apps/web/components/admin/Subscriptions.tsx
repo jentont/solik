@@ -16,12 +16,12 @@ export function AdminSubscriptions({ isOwner }: { isOwner: boolean }) {
     <div className="space-y-6">
       <Plans isOwner={isOwner} />
       <Card>
-        <CardTitle sub={`Последние 50 платежей: ⭐ ${fmtNum(revenue)}`}>Подписки</CardTitle>
+        <CardTitle sub={`Последние 50 платежей: ${fmtNum(revenue)} Stars`}>Подписки</CardTitle>
         <div className="mb-3 flex flex-wrap gap-2">
           {['', 'ACTIVE', 'GRACE', 'CANCELLED', 'EXPIRED'].map((s) => (
             <Button key={s} size="sm" variant={status === s ? 'primary' : 'secondary'} onClick={() => (setStatus(s), setPage(1))}>
               {s ? <StatusBadge status={s} /> : 'Все'}
-              {s && data?.byStatus && <span className="text-xs">{data.byStatus.find((b: any) => b.status === s)?._count ?? 0}</span>}
+              {s && data?.byStatus && <span className="text-[13px]">{data.byStatus.find((b: any) => b.status === s)?._count ?? 0}</span>}
             </Button>
           ))}
         </div>
@@ -33,17 +33,17 @@ export function AdminSubscriptions({ isOwner }: { isOwner: boolean }) {
               <tr key={s.id}>
                 <td className="px-3 py-2.5">
                   {s.owner.username ? `@${s.owner.username}` : ''}
-                  <div className="font-mono text-xs text-muted">{s.owner.telegramId}</div>
+                  <div className="font-mono text-[13px] text-muted">{s.owner.telegramId}</div>
                 </td>
-                <td className="px-3">{s.bot ? `@${s.bot.username}` : <span className="text-xs text-muted">не подключен</span>}</td>
-                <td className="px-3 text-xs">
-                  {s.plan.name} · {s.priceStars} ⭐
+                <td className="px-3">{s.bot ? `@${s.bot.username}` : <span className="text-[13px] text-muted">не подключен</span>}</td>
+                <td className="px-3 text-[13px]">
+                  {s.plan.name} · {s.priceStars} Stars
                 </td>
                 <td className="px-3">
                   <StatusBadge status={s.status} />
                 </td>
-                <td className="px-3 text-xs">{fmtDay(s.periodEnd)}</td>
-                <td className="px-3 text-xs">{s.subscriptionChargeId ? (s.autoRenew ? 'да' : 'отменено') : 'нет'}</td>
+                <td className="px-3 text-[13px]">{fmtDay(s.periodEnd)}</td>
+                <td className="px-3 text-[13px]">{s.subscriptionChargeId ? (s.autoRenew ? 'да' : 'отменено') : 'нет'}</td>
                 <td className="px-3">{s._count.payments}</td>
               </tr>
             ))}
@@ -56,14 +56,14 @@ export function AdminSubscriptions({ isOwner }: { isOwner: boolean }) {
         <Table head={['Дата', 'Пользователь', 'Бот', 'Сумма', 'Тип', 'Charge ID']} empty={!data?.payments?.length}>
           {data?.payments?.map((p: any) => (
             <tr key={p.id} className={p.refunded ? 'opacity-50' : ''}>
-              <td className="px-3 py-2 text-xs">{fmtDate(p.paidAt)}</td>
-              <td className="px-3 text-xs">@{p.subscription.owner.username ?? '—'}</td>
-              <td className="px-3 text-xs">{p.subscription.bot ? `@${p.subscription.bot.username}` : '—'}</td>
-              <td className="px-3 text-gold">⭐ {p.amount}</td>
-              <td className="px-3 text-xs">
+              <td className="px-3 py-2 text-[13px]">{fmtDate(p.paidAt)}</td>
+              <td className="px-3 text-[13px]">@{p.subscription.owner.username ?? '—'}</td>
+              <td className="px-3 text-[13px]">{p.subscription.bot ? `@${p.subscription.bot.username}` : '—'}</td>
+              <td className="px-3 text-gold">{p.amount} Stars</td>
+              <td className="px-3 text-[13px]">
                 {p.isRecurring ? 'автопродление' : 'оплата'} {p.refunded && <Badge tone="bad">возврат</Badge>}
               </td>
-              <td className="max-w-[160px] truncate px-3 font-mono text-[11px] text-muted">{p.telegramPaymentChargeId}</td>
+              <td className="max-w-[160px] truncate px-3 font-mono text-[13px] text-muted">{p.telegramPaymentChargeId}</td>
             </tr>
           ))}
         </Table>
@@ -113,8 +113,8 @@ function Plans({ isOwner }: { isOwner: boolean }) {
                 {!p.isActive && <Badge tone="bad">выкл</Badge>}
               </span>
             </div>
-            <div className="mt-2 font-display text-2xl font-bold text-gold">{p.priceStars} ⭐</div>
-            <div className="text-xs text-muted">
+            <div className="mt-2 font-display text-2xl font-bold text-gold">{p.priceStars} Stars</div>
+            <div className="text-[13px] text-muted">
               {p.periodDays} дн. · льготный период {p.graceDays} дн. · подписок: {p._count.subscriptions}
             </div>
             {isOwner && (
@@ -131,7 +131,7 @@ function Plans({ isOwner }: { isOwner: boolean }) {
             <Input label="Код" value={edit.code} disabled={!!edit.id} onChange={(e) => setEdit({ ...edit, code: e.target.value })} placeholder="white-label-pro" />
             <Input label="Название" value={edit.name} onChange={(e) => setEdit({ ...edit, name: e.target.value })} />
             <div className="grid grid-cols-3 gap-3">
-              <Input label="Цена, ⭐" type="number" value={edit.priceStars} onChange={(e) => setEdit({ ...edit, priceStars: e.target.value })} />
+              <Input label="Цена, Stars" type="number" value={edit.priceStars} onChange={(e) => setEdit({ ...edit, priceStars: e.target.value })} />
               <Input label="Период, дн." type="number" value={edit.periodDays} onChange={(e) => setEdit({ ...edit, periodDays: e.target.value })} />
               <Input label="Льгота, дн." type="number" value={edit.graceDays} onChange={(e) => setEdit({ ...edit, graceDays: e.target.value })} />
             </div>

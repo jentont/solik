@@ -185,7 +185,7 @@ export async function notifyOwnerManual(deliveryId: string, error?: string) {
   const owner = d?.bot.owner;
   if (!d || !owner) return;
   const lines = [
-    '🎁 <b>Требуется ручная выдача приза</b>',
+    '<b>Требуется ручная выдача приза</b>',
     d.contest ? `Конкурс: ${escapeHtml(d.contest.title)}` : '',
     `Приз: ${escapeHtml(d.prize?.title ?? '—')}`,
     `Победитель: ${escapeHtml(d.recipientName ?? '')} (ID <code>${d.recipientTgId}</code>)`,

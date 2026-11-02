@@ -115,11 +115,11 @@ export async function handleMainPrivate(api: TelegramApi, msg: TgMessage) {
       const res = await connectBot(user.id, text);
       await api.sendMessage(
         msg.chat.id,
-        `✅ Бот @${escapeHtml(String(res.bot.username))} подключен!\n\nДобавьте его администратором в свой чат или канал и настройте внешний вид в панели.`,
-        { reply_markup: { inline_keyboard: [[{ text: '⚙️ Открыть панель бота', web_app: { url: app(`/bots/${res.bot.id}`) } }]] } },
+        `Бот @${escapeHtml(String(res.bot.username))} подключен!\n\nДобавьте его администратором в свой чат или канал и настройте внешний вид в панели.`,
+        { reply_markup: { inline_keyboard: [[{ text: 'Открыть панель бота', web_app: { url: app(`/bots/${res.bot.id}`) } }]] } },
       );
     } catch (e) {
-      await api.sendMessage(msg.chat.id, `⚠️ ${escapeHtml((e as Error).message)}`);
+      await api.sendMessage(msg.chat.id, escapeHtml((e as Error).message));
     }
     return;
   }
@@ -146,8 +146,8 @@ async function startNewBot(api: TelegramApi, from: TgUser, chatId: number) {
   const inv = await createSubscriptionInvoice(user.id, { planId: plan.id, autoRenew: true });
   await api.sendMessage(
     chatId,
-    `<b>Собственный бот — ${plan.priceStars} ⭐ / ${plan.periodDays} дней</b>\n\nВаш бот с вашим названием, аватаром, приветствием, шаблонами и Premium Emoji — без упоминаний SOLIK.\n\n${inv.recurring ? 'Подписка продлевается автоматически, отменить можно в любой момент в настройках.' : ''}`,
-    { reply_markup: { inline_keyboard: [[{ text: `⭐ Оплатить ${inv.price} Stars`, url: inv.link }]] } },
+    `<b>Собственный бот — ${plan.priceStars} Stars / ${plan.periodDays} дней</b>\n\nВаш бот с вашим названием, аватаром, приветствием, шаблонами и Premium Emoji — без упоминаний SOLIK.\n\n${inv.recurring ? 'Подписка продлевается автоматически, отменить можно в любой момент в настройках.' : ''}`,
+    { reply_markup: { inline_keyboard: [[{ text: `Оплатить ${inv.price} Stars`, url: inv.link }]] } },
   );
 }
 
@@ -169,6 +169,7 @@ export async function setupMainBotMenu(api: TelegramApi) {
   await api.setMyCommands([
     { command: 'start', description: 'Главное меню' },
     { command: 'newbot', description: 'Создать своего бота' },
+    { command: 'notify', description: 'Уведомления о конкурсах в моих чатах' },
     { command: 'help', description: 'Помощь' },
   ]);
   await api.setChatMenuButton({ type: 'web_app', text: 'Открыть', web_app: { url: app('/') } });

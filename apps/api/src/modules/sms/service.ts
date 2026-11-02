@@ -49,11 +49,11 @@ export async function handleSmsCommand(api: TelegramApi, bot: TelegramBot, msg: 
     api.sendMessage(msg.chat.id, html, { reply_parameters: { message_id: msg.message_id, allow_sending_without_reply: true }, ...extra });
 
   if (!(await isChatAdmin(api, msg))) {
-    await reply('⛔ Команды SMS Counter доступны только администраторам чата.');
+    await reply('Команды SMS Counter доступны только администраторам чата.');
     return true;
   }
   if (cmd.action === 'help') return reply(SMS_HELP).then(() => true);
-  if (cmd.action === 'invalid') return reply(`⚠️ ${escapeHtml(cmd.error)}`).then(() => true);
+  if (cmd.action === 'invalid') return reply(escapeHtml(cmd.error)).then(() => true);
 
   const chatTgId = BigInt(msg.chat.id);
   const thread = threadOf(msg);
@@ -64,11 +64,11 @@ export async function handleSmsCommand(api: TelegramApi, bot: TelegramBot, msg: 
       try {
         assertBotUsable(bot);
       } catch (e) {
-        return reply(`⚠️ ${escapeHtml((e as Error).message)}`).then(() => true);
+        return reply(escapeHtml((e as Error).message)).then(() => true);
       }
-      if (current) return reply('⚠️ В этом чате уже идёт SMS-конкурс. Остановите его: <code>.sms stop</code>').then(() => true);
+      if (current) return reply('В этом чате уже идёт SMS-конкурс. Остановите его: <code>.sms stop</code>').then(() => true);
       const ownerId = await resolveChatOwner(bot, msg.chat.id, msg.from);
-      if (!ownerId) return reply('⚠️ Не удалось определить владельца чата. Подключите чат в панели управления.').then(() => true);
+      if (!ownerId) return reply('Не удалось определить владельца чата. Подключите чат в панели управления.').then(() => true);
       const chat = await prisma.telegramChat.findUnique({ where: { botId_chatId: { botId: bot.id, chatId: chatTgId } } });
       if (thread === null && chat?.linkedChannelChatId && msg.chat.type === 'supergroup') {
         // Group of a channel without a thread: counts group messages, which is allowed; make it explicit.
@@ -118,14 +118,14 @@ export async function handleSmsCommand(api: TelegramApi, bot: TelegramBot, msg: 
       await prisma.smsCounter.update({ where: { id: current.id }, data: { status: 'STOPPED', finishedAt: new Date() } });
       await prisma.contest.update({ where: { id: current.contestId }, data: { status: 'CANCELLED', finishedAt: new Date() } });
       await contestEvent(current.contestId, 'sms.stopped', { by: msg.from?.id });
-      return reply(`⏹ SMS-конкурс остановлен. Участников: ${current.count}/${current.target}.`).then(() => true);
+      return reply(`SMS-конкурс остановлен. Участников: ${current.count}/${current.target}.`).then(() => true);
     }
     case 'stats': {
       if (!current) return reply('Нет активного SMS-конкурса.').then(() => true);
       const last = await prisma.smsCounterParticipant.findMany({ where: { counterId: current.id }, orderBy: { position: 'desc' }, take: 5 });
       const lines = last.map((p) => `#${p.position} — ${escapeHtml(mention({ id: p.tgUserId, username: p.username, first_name: p.firstName }))}`);
       return reply(
-        `📊 <b>SMS Counter</b>\nРежим: ${MODE_LABEL[current.mode].replace('{n}', String(current.target)).replace('{every}', String(current.everyN ?? ''))}\nУчастники: ${current.count}/${current.target}\nСообщений учтено: ${current.messagesSeen}\nСтатус: ${current.status === 'FILLED' ? 'набор завершён' : 'идёт набор'}\n\n${lines.join('\n')}`,
+        `<b>SMS Counter</b>\nРежим: ${MODE_LABEL[current.mode].replace('{n}', String(current.target)).replace('{every}', String(current.everyN ?? ''))}\nУчастники: ${current.count}/${current.target}\nСообщений учтено: ${current.messagesSeen}\nСтатус: ${current.status === 'FILLED' ? 'набор завершён' : 'идёт набор'}\n\n${lines.join('\n')}`,
       ).then(() => true);
     }
     case 'winner': {
@@ -138,7 +138,7 @@ export async function handleSmsCommand(api: TelegramApi, bot: TelegramBot, msg: 
     case 'reset': {
       if (!current) return reply('Нет активного SMS-конкурса.').then(() => true);
       await reply(`Сбросить счётчик? Будут удалены ${current.count} участников текущего набора.`, {
-        reply_markup: { inline_keyboard: [[{ text: '✅ Да, сбросить', callback_data: `smsreset:${current.id}` }, { text: 'Отмена', callback_data: 'noop' }]] },
+        reply_markup: { inline_keyboard: [[{ text: 'Да, сбросить', callback_data: `smsreset:${current.id}` }, { text: 'Отмена', callback_data: 'noop' }]] },
       });
       return true;
     }
@@ -155,7 +155,7 @@ export async function confirmSmsReset(api: TelegramApi, counterId: string, msg: 
   ]);
   const c = await prisma.smsCounter.findUniqueOrThrow({ where: { id: counterId } });
   await contestEvent(c.contestId, 'sms.reset', { by: byUserId });
-  await api.editMessageText(msg.chat.id, msg.message_id, '🔄 Счётчик сброшен. Набор начинается заново.').catch(() => undefined);
+  await api.editMessageText(msg.chat.id, msg.message_id, 'Счётчик сброшен. Набор начинается заново.').catch(() => undefined);
   return 'Сброшено';
 }
 
@@ -217,7 +217,7 @@ export async function handleSmsMessage(bot: TelegramBot, msg: TgMessage): Promis
   };
   const regTpl = await resolveTemplate(ctx.ownerId, ctx.botId, 'SMS_REGISTERED');
   let html = renderTemplate(regTpl.text, vars);
-  if (positionPrize) html += `\n🎁 Приз за позицию #${result.position}: <b>${escapeHtml(positionPrize.title)}</b>`;
+  if (positionPrize) html += `\nПриз за позицию #${result.position}: <b>${escapeHtml(positionPrize.title)}</b>`;
   if (result.position % Math.max(1, counter.announceEvery) === 0 || positionPrize) {
     await notify({ botId: bot.id, chatId: String(msg.chat.id), html, replyTo: msg.message_id });
   }

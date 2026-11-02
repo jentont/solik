@@ -872,11 +872,24 @@ model BotUser {
   username   String?
   firstName  String?
   isBlocked  Boolean  @default(false)
+  // DM about contests starting in chats this user is active in; /notify toggles it
+  notify     Boolean  @default(true)
   startedAt  DateTime @default(now())
   lastSeenAt DateTime @default(now())
 
   @@unique([botId, tgUserId])
   @@index([botId, isBlocked])
+}
+
+/// Who writes in which chat (refreshed at most daily per user and chat): the audience for contest notifications.
+model ChatAudience {
+  botId      String
+  chatTgId   BigInt
+  tgUserId   BigInt
+  lastSeenAt DateTime @default(now())
+
+  @@id([botId, chatTgId, tgUserId])
+  @@index([botId, chatTgId, lastSeenAt])
 }
 
 // ───────────────────────────── Broadcasts ─────────────────────────────

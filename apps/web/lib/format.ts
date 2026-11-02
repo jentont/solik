@@ -1,13 +1,13 @@
-export const CONTEST_TYPES: Record<string, { label: string; emoji: string; hint: string }> = {
-  RANDOM: { label: 'Случайный розыгрыш', emoji: '🎲', hint: 'Кнопка «Участвовать», победители выбираются случайно' },
-  STARS_AUCTION: { label: 'Перебивка Stars', emoji: '⭐', hint: 'Ставки Stars или платные сообщения, таймер сбрасывается после каждой' },
-  FIRST_COMMENT: { label: 'Первый комментарий', emoji: '💬', hint: 'Побеждает первый комментарий под выбранным постом' },
-  SMS_COUNTER: { label: 'SMS Counter', emoji: '🔢', hint: 'Первые N участников в чате или комментариях' },
-  MESSAGE_GIVEAWAY: { label: 'Подарки за сообщения', emoji: '💌', hint: 'Каждые N сообщений или шанс на каждое сообщение' },
-  ACTIVITY: { label: 'Конкурс активности', emoji: '🔥', hint: 'Таблица лидеров за период' },
-  GIFTS: { label: 'Telegram Gifts', emoji: '🎁', hint: 'Розыгрыш подарков среди участников' },
-  NFT: { label: 'NFT Giveaway', emoji: '💎', hint: 'Розыгрыш NFT / коллекционных подарков' },
-  DICE_777: { label: 'Конкурс 777', emoji: '🎰', hint: 'Кто выбьет 777 в слот-машине 🎰 — тот выиграл' },
+export const CONTEST_TYPES: Record<string, { label: string; hint: string }> = {
+  RANDOM: { label: 'Случайный розыгрыш', hint: 'Кнопка «Участвовать», победители выбираются случайно' },
+  STARS_AUCTION: { label: 'Перебивка', hint: 'Платное сообщение в чате перебивает прошлое. Чьё последнее к концу таймера — тот выиграл' },
+  FIRST_COMMENT: { label: 'Первый комментарий', hint: 'Побеждает первый комментарий под выбранным постом' },
+  SMS_COUNTER: { label: 'SMS Counter', hint: 'Первые N участников в чате или комментариях' },
+  MESSAGE_GIVEAWAY: { label: 'Подарки за сообщения', hint: 'Каждые N сообщений или шанс на каждое сообщение' },
+  ACTIVITY: { label: 'Конкурс активности', hint: 'Таблица лидеров за период' },
+  GIFTS: { label: 'Telegram Gifts', hint: 'Розыгрыш подарков среди участников' },
+  NFT: { label: 'NFT Giveaway', hint: 'Розыгрыш NFT / коллекционных подарков' },
+  DICE_777: { label: 'Конкурс 777', hint: 'Кто выбьет 777 в слот-машине — тот выиграл' },
 };
 
 export const STATUS: Record<string, { label: string; tone: 'ok' | 'warn' | 'bad' | 'muted' | 'accent' }> = {

@@ -109,7 +109,7 @@ export function GiftSticker({ gift, size = 64, className, animate = true }: { gi
     return <img src={source.src} alt={gift.name} style={style} className={cn(uniqueGiftSlug(gift.name) ? 'rounded-[22%] object-cover' : 'object-contain', className)} onError={() => setSource({ kind: 'emoji' })} />;
   return (
     <div style={{ ...style, fontSize: size * 0.72 }} className={cn('flex items-center justify-center leading-none', className)} aria-label={gift.name}>
-      {gift.emoji ?? '🎁'}
+      {gift.emoji ?? ''}
     </div>
   );
 }

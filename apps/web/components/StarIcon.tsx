@@ -1,6 +1,6 @@
 import { cn } from '@/lib/format';
 
-/** Telegram Stars mark (rounded five-point star with a soft gold gradient), used instead of the ⭐ emoji in the UI. */
+/** Telegram Stars mark (rounded five-point star with a soft gold gradient), used instead of the star emoji in the UI. */
 export function StarIcon({ size = 16, className }: { size?: number; className?: string }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden className={cn('inline-block shrink-0 align-[-0.15em]', className)}>

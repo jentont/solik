@@ -55,7 +55,7 @@ export default function ContestPage() {
 
   return (
     <>
-      <Link href="/contests" className="mb-4 inline-flex items-center gap-1 text-sm text-muted hover:text-fg">
+      <Link href="/contests" className="mb-4 inline-flex items-center gap-1 text-[15px] text-muted hover:text-fg">
         <ArrowLeft className="h-4 w-4" /> Конкурсы
       </Link>
       <PageHeader
@@ -130,19 +130,19 @@ export default function ContestPage() {
         <Card className="mb-6 overflow-hidden bg-gradient-to-br from-gold/10 to-transparent">
           <div className="grid gap-4 sm:grid-cols-4">
             <div>
-              <div className="text-xs text-muted">Текущая ставка</div>
+              <div className="text-[13px] text-muted">Текущая ставка</div>
               <Stars value={c.currentBid ?? '—'} size={26} className="font-display text-3xl font-bold" />
             </div>
             <div>
-              <div className="text-xs text-muted">Лидер</div>
+              <div className="text-[13px] text-muted">Лидер</div>
               <div className="font-display text-xl font-semibold">{c.leaderName ?? 'нет ставок'}</div>
             </div>
             <div>
-              <div className="text-xs text-muted">До конца</div>
+              <div className="text-[13px] text-muted">До конца</div>
               <div className="font-display text-3xl font-bold tabular-nums">{timeLeft(c.endsAt)}</div>
             </div>
             <div>
-              <div className="text-xs text-muted">Ставок</div>
+              <div className="text-[13px] text-muted">Ставок</div>
               <div className="font-display text-3xl font-bold">{c.bidsCount}</div>
             </div>
           </div>
@@ -184,12 +184,12 @@ export default function ContestPage() {
             <tr key={w.id} className={w.status === 'REROLLED' ? 'opacity-50' : ''}>
               <td className="px-3 py-2.5 font-display font-bold">#{w.place}</td>
               <td className="px-3">
-                {userName(w)} <span className="font-mono text-xs text-muted">{w.tgUserId}</span>
+                {userName(w)} <span className="font-mono text-[13px] text-muted">{w.tgUserId}</span>
               </td>
               <td className="px-3">{w.prize?.title ?? '—'}</td>
-              <td className="px-3 text-xs text-muted">№{w.drawNumber}</td>
+              <td className="px-3 text-[13px] text-muted">№{w.drawNumber}</td>
               <td className="px-3">{w.status === 'ACTIVE' ? <Badge tone="ok">Победитель</Badge> : <Badge>Перевыбран</Badge>}</td>
-              <td className="px-3 text-xs text-muted">{fmtDate(w.createdAt)}</td>
+              <td className="px-3 text-[13px] text-muted">{fmtDate(w.createdAt)}</td>
             </tr>
           ))}
         </Table>
@@ -203,8 +203,8 @@ export default function ContestPage() {
               <td className="px-3">
                 <StatusBadge status={b.status} />
               </td>
-              <td className="px-3 text-xs text-muted">{b.kind === 'PAID_MESSAGE' ? 'Платное сообщение' : 'Инвойс'}</td>
-              <td className="px-3 text-xs text-muted">{fmtDate(b.createdAt)}</td>
+              <td className="px-3 text-[13px] text-muted">{b.kind === 'PAID_MESSAGE' ? 'Платное сообщение' : 'Инвойс'}</td>
+              <td className="px-3 text-[13px] text-muted">{fmtDate(b.createdAt)}</td>
             </tr>
           ))}
         </Table>
@@ -215,11 +215,11 @@ export default function ContestPage() {
           {c.deliveries.map((d: any) => (
             <tr key={d.id}>
               <td className="px-3 py-2.5">{d.recipientName ?? d.recipientTgId}</td>
-              <td className="px-3 text-xs">{d.method}</td>
+              <td className="px-3 text-[13px]">{d.method}</td>
               <td className="px-3">
                 <StatusBadge status={d.status} />
               </td>
-              <td className="max-w-xs truncate px-3 text-xs text-muted">{d.error ?? d.note ?? ''}</td>
+              <td className="max-w-xs truncate px-3 text-[13px] text-muted">{d.error ?? d.note ?? ''}</td>
               <td className="whitespace-nowrap px-3 text-right">
                 {['FAILED', 'PENDING'].includes(d.status) && (
                   <Button size="sm" variant="ghost" onClick={() => run('r' + d.id, () => api(`/api/gifts/deliveries/${d.id}/retry`, { body: {} }), 'Повтор запущен')}>
@@ -238,12 +238,12 @@ export default function ContestPage() {
       )}
       {tab === 'events' && (
         <Card>
-          <ul className="space-y-2 text-sm">
+          <ul className="space-y-2 text-[15px]">
             {c.events.map((e: any) => (
               <li key={e.id} className="flex gap-3 border-b border-line/[0.05] pb-2">
-                <span className="w-32 shrink-0 text-xs text-muted">{fmtDate(e.createdAt)}</span>
-                <span className="font-mono text-xs">{e.type}</span>
-                <span className="truncate text-xs text-muted">{JSON.stringify(e.data)}</span>
+                <span className="w-32 shrink-0 text-[13px] text-muted">{fmtDate(e.createdAt)}</span>
+                <span className="font-mono text-[13px]">{e.type}</span>
+                <span className="truncate text-[13px] text-muted">{JSON.stringify(e.data)}</span>
               </li>
             ))}
           </ul>
@@ -265,9 +265,9 @@ function Participants({ id, sms }: { id: string; sms: boolean }) {
           <tr key={p.id}>
             <td className="px-3 py-2.5 font-display font-semibold tabular-nums">{p.position ?? '—'}</td>
             <td className="px-3">{userName(p)}</td>
-            <td className="px-3 font-mono text-xs text-muted">{p.tgUserId}</td>
+            <td className="px-3 font-mono text-[13px] text-muted">{p.tgUserId}</td>
             <td className="px-3 tabular-nums">{sms ? `#${p.messageId}` : p.score}</td>
-            <td className="px-3 text-xs text-muted">{fmtDate(p.joinedAt ?? p.createdAt)}</td>
+            <td className="px-3 text-[13px] text-muted">{fmtDate(p.joinedAt ?? p.createdAt)}</td>
           </tr>
         ))}
       </Table>
@@ -286,11 +286,11 @@ function Leaderboard({ id }: { id: string }) {
         {data?.map((r) => (
           <li key={r.rank} className="flex items-center gap-3">
             <span className="w-6 text-right font-display font-bold text-muted">{r.rank}</span>
-            <span className="w-40 truncate text-sm">{r.name}</span>
+            <span className="w-40 truncate text-[15px]">{r.name}</span>
             <div className="h-2 flex-1 overflow-hidden rounded-full bg-elevated">
               <div className="h-full rounded-full bg-gradient-to-r from-accent to-gold" style={{ width: `${(r.score / max) * 100}%` }} />
             </div>
-            <span className="w-12 text-right text-sm tabular-nums">{r.score}</span>
+            <span className="w-12 text-right text-[15px] tabular-nums">{r.score}</span>
           </li>
         ))}
       </ul>

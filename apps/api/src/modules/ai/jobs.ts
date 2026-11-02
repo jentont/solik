@@ -37,10 +37,16 @@ export async function runImageJob(jobId: string) {
   try {
     let background: Buffer | null = null;
     let model: string | undefined;
+    let note: string | undefined;
     if (input.useAi) {
-      const provider = await getAIProvider();
-      background = await provider.generateImage(buildImagePrompt(input.template, input.prize, input.theme));
-      model = provider.imageModel;
+      try {
+        const provider = await getAIProvider();
+        background = await provider.generateImage(buildImagePrompt(input.template, input.prize, input.theme));
+        model = provider.imageModel;
+      } catch (e) {
+        // free image quotas run out often: still deliver a branded template image
+        note = `AI-фон недоступен, использован фирменный шаблон (${(e as Error).message.slice(0, 200)})`;
+      }
     }
     let logo: Buffer | null = null;
     if (input.logoMediaId) {
@@ -51,7 +57,7 @@ export async function runImageJob(jobId: string) {
     const media = await storeMedia(job.ownerId, img, { source: 'ai' });
     await prisma.aIJob.update({
       where: { id: jobId },
-      data: { status: 'DONE', output: { mediaId: media.id, url: mediaUrl(media.id) }, provider: input.useAi ? 'gemini' : 'template', model },
+      data: { status: 'DONE', output: { mediaId: media.id, url: mediaUrl(media.id), note }, provider: background ? 'ai' : 'template', model },
     });
   } catch (e) {
     await prisma.aIJob.update({ where: { id: jobId }, data: { status: 'FAILED', error: (e as Error).message.slice(0, 1000) } });

@@ -31,10 +31,16 @@ const schema = z.object({
   SESSION_TTL_HOURS: z.coerce.number().default(72),
   ALLOW_DEV_LOGIN: bool,
 
-  AI_PROVIDER: z.enum(['gemini', 'none']).default('gemini'),
+  // auto: every configured provider in order Gemini → Groq → OpenRouter, falling through on errors/limits
+  AI_PROVIDER: z.enum(['auto', 'gemini', 'groq', 'openrouter', 'none']).default('auto'),
   GEMINI_API_KEY: z.string().default(''),
   GEMINI_TEXT_MODEL: z.string().default('gemini-2.5-flash'),
   GEMINI_IMAGE_MODEL: z.string().default('gemini-2.5-flash-image'),
+  GROQ_API_KEY: z.string().default(''),
+  GROQ_MODEL: z.string().default('llama-3.3-70b-versatile'),
+  OPENROUTER_API_KEY: z.string().default(''),
+  // empty = pick a free model (":free") automatically
+  OPENROUTER_MODEL: z.string().default(''),
 
   UPLOAD_DIR: z.string().default('./uploads'),
   BRAND_LOGO_PATH: z.string().default('./assets/logo.png'),

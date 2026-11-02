@@ -340,7 +340,7 @@ export async function adminRoutes(app: FastifyInstance) {
         mainApi.getWebhookInfo().catch((e) => ({ error: String(e) })),
         mainApi.getMyStarBalance().catch(() => null),
       ]);
-      return { database: db, redis: rd, mainBotWebhook: webhook, mainBotStars: balance, ai: { provider: env.AI_PROVIDER, configured: !!env.GEMINI_API_KEY, textModel: env.GEMINI_TEXT_MODEL, imageModel: env.GEMINI_IMAGE_MODEL } };
+      return { database: db, redis: rd, mainBotWebhook: webhook, mainBotStars: balance, ai: { provider: env.AI_PROVIDER, configured: !!(env.GEMINI_API_KEY || env.GROQ_API_KEY || env.OPENROUTER_API_KEY), textModel: [env.GEMINI_API_KEY && 'gemini', env.GROQ_API_KEY && 'groq', env.OPENROUTER_API_KEY && 'openrouter'].filter(Boolean).join(' → '), imageModel: env.GEMINI_IMAGE_MODEL } };
     });
     r.get('/api/admin/settings', async () => prisma.platformSetting.findMany());
     r.put<{ Params: { key: string } }>('/api/admin/settings/:key', { preHandler: requireOwner }, async (req) => {

@@ -1,14 +1,15 @@
 import type { Metadata, Viewport } from 'next';
-import { Caveat, Onest, Unbounded } from 'next/font/google';
+import localFont from 'next/font/local';
 import Script from 'next/script';
 import { AuthProvider } from '@/lib/auth';
 import { Shell } from '@/components/Shell';
 import './globals.css';
 
-// Same type system as Mirrows: Onest for text, heavy Unbounded for headings, Caveat for handwritten accents
-const sans = Onest({ subsets: ['latin', 'cyrillic'], variable: '--font-sans', weight: ['400', '500', '600', '700', '800'] });
-const display = Unbounded({ subsets: ['latin', 'cyrillic'], variable: '--font-display', weight: ['600', '700', '800', '900'] });
-const hand = Caveat({ subsets: ['latin', 'cyrillic'], variable: '--font-hand', weight: ['500', '700'] });
+// Same type system as Mirrows: Onest for text, heavy Unbounded for headings, Caveat for handwritten accents.
+// Self-hosted (Latin + Cyrillic subsets, variable weight) so builds never depend on Google Fonts.
+const sans = localFont({ src: './fonts/Onest.woff', variable: '--font-sans', weight: '100 900', display: 'swap' });
+const display = localFont({ src: './fonts/Unbounded.woff', variable: '--font-display', weight: '200 900', display: 'swap' });
+const hand = localFont({ src: './fonts/Caveat.woff', variable: '--font-hand', weight: '400 700', display: 'swap' });
 
 export const metadata: Metadata = {
   title: 'SOLIK — конкурсы, подарки и Stars в Telegram',

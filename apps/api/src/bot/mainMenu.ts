@@ -1,8 +1,11 @@
+import { readFile } from 'node:fs/promises';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { env } from '../config/env.js';
 import { prisma } from '../lib/prisma.js';
 import { redis } from '../lib/redis.js';
-import type { TelegramApi } from '../telegram/client.js';
-import type { TgCallbackQuery, TgMessage, TgUser } from '../telegram/types.js';
+import { TelegramError, type TelegramApi } from '../telegram/client.js';
+import type { TgCallbackQuery, TgInlineButton, TgMessage, TgUser } from '../telegram/types.js';
 import { escapeHtml } from '../templates/render.js';
 import { ensureUser } from '../modules/chats/access.js';
 import { connectBot, TOKEN_RE } from '../modules/bots/service.js';
@@ -11,23 +14,80 @@ import { ensureDefaultPlan } from '../modules/subscriptions/plans.js';
 
 const WELCOME = `<b>Добро пожаловать в SOLIK!</b>
 
-Создавай Telegram-конкурсы, раздавай подарки, проводи розыгрыши Stars и управляй своим сообществом в одном месте.
+Конкурсы, Telegram-подарки и Stars для вашего канала и чата — без программирования.
 
-Все инструменты для конкурсов — в одном боте.`;
+Нажмите «Создать свой конкурс», чтобы запустить розыгрыш, или «Создать бота», чтобы получить своего бота под вашим брендом.`;
 
-const app = (path = '') => `${env.WEB_APP_URL.replace(/\/$/, '')}${path}`;
+const app = (p = '') => `${env.WEB_APP_URL.replace(/\/$/, '')}${p}`;
+const BANNER = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../assets/welcome.png');
 
-function mainKeyboard() {
-  const wa = (text: string, path: string) => ({ text, web_app: { url: app(path) } });
-  return {
-    inline_keyboard: [
-      [{ text: '🤖 Создать бота', callback_data: 'm:newbot' }, wa('📂 Мои боты', '/bots')],
-      [wa('🏆 Конкурсы', '/contests'), wa('🎁 Розыгрыши', '/contests/new')],
-      [wa('💝 Telegram Gifts', '/gifts'), wa('💬 SMS Counter', '/sms')],
-      [wa('📊 Аналитика', '/analytics'), wa('⚙️ Настройки', '/settings')],
-      [{ text: '➕ Добавить в чат', url: '' }, { text: '❓ Помощь', callback_data: 'm:help' }],
-    ],
+// ---- Premium emoji for the buttons, resolved from the configured pack by emoji character ----
+let emojiCache: { at: number; byChar: Map<string, string>; all: string[] } | null = null;
+async function packEmoji(api: TelegramApi) {
+  if (emojiCache && Date.now() - emojiCache.at < 3600_000) return emojiCache;
+  const byChar = new Map<string, string>();
+  const all: string[] = [];
+  try {
+    const set = await api.getStickerSet(env.MENU_EMOJI_PACK);
+    for (const st of set.stickers) {
+      if (!st.custom_emoji_id) continue;
+      all.push(st.custom_emoji_id);
+      for (const ch of [...(st.emoji ?? '')]) if (!byChar.has(ch)) byChar.set(ch, st.custom_emoji_id);
+    }
+  } catch {
+    // pack missing or not reachable: buttons go without icons
+  }
+  emojiCache = { at: Date.now(), byChar, all };
+  return emojiCache;
+}
+function pick(e: { byChar: Map<string, string>; all: string[] }, chars: string[], fallbackIndex: number) {
+  for (const ch of chars) {
+    const id = e.byChar.get(ch);
+    if (id) return id;
+  }
+  return e.all[fallbackIndex];
+}
+
+async function mainKeyboard(api: TelegramApi): Promise<TgInlineButton[][]> {
+  const e = await packEmoji(api);
+  const contestIcon = pick(e, ['🎁', '🏆', '🎉', '🎄', '⭐'], 0);
+  const botIcon = pick(e, ['🤖', '⛄', '❄', '✨', '🎅'], 1);
+  return [
+    [{ text: 'Создать свой конкурс', web_app: { url: app('/contests/new') }, style: 'primary', ...(contestIcon ? { icon_custom_emoji_id: contestIcon } : {}) }],
+    [{ text: 'Создать бота', callback_data: 'm:newbot', style: 'success', ...(botIcon ? { icon_custom_emoji_id: botIcon } : {}) }],
+  ];
+}
+
+/** Banner + two buttons. Falls back to plain buttons / text if Telegram rejects icons or the photo. */
+async function sendWelcome(api: TelegramApi, chatId: number) {
+  const rows = await mainKeyboard(api);
+  const plain = rows.map((r) => r.map(({ icon_custom_emoji_id: _i, style: _s, ...b }) => b));
+  const cached = await redis().get('main:welcome_photo');
+  const send = async (inline_keyboard: TgInlineButton[][]) => {
+    if (cached) return api.sendPhoto(chatId, cached, WELCOME, { reply_markup: { inline_keyboard } });
+    const data = await readFile(BANNER);
+    const msg = await api.upload<TgMessage & { photo?: { file_id: string }[] }>('sendPhoto', 'photo', { data, filename: 'solik.png', mime: 'image/png' }, {
+      chat_id: chatId,
+      caption: WELCOME,
+      parse_mode: 'HTML',
+      reply_markup: { inline_keyboard },
+    });
+    const fileId = msg.photo?.at(-1)?.file_id;
+    if (fileId) await redis().set('main:welcome_photo', fileId);
+    return msg;
   };
+  try {
+    return await send(rows);
+  } catch (err) {
+    if (err instanceof TelegramError && err.code === 400) {
+      try {
+        return await send(plain);
+      } catch {
+        /* fall through to text */
+      }
+    }
+    return api.sendMessage(chatId, WELCOME, { reply_markup: { inline_keyboard: plain } });
+  }
 }
 
 const HELP = `<b>Как начать</b>
@@ -44,9 +104,6 @@ export async function handleMainPrivate(api: TelegramApi, msg: TgMessage) {
   const from = msg.from!;
   await ensureUser(from);
   const text = (msg.text ?? '').trim();
-  const me = await api.getMe();
-  const kb = mainKeyboard();
-  kb.inline_keyboard[4]![0] = { text: '➕ Добавить в чат', url: `https://t.me/${me.username}?startgroup=solik&admin=post_messages+delete_messages+pin_messages+manage_chat` };
 
   // Waiting for a BotFather token after "Создать бота"
   const state = await redis().get(`conv:${from.id}`);
@@ -69,7 +126,7 @@ export async function handleMainPrivate(api: TelegramApi, msg: TgMessage) {
 
   if (text.startsWith('/newbot')) return startNewBot(api, from, msg.chat.id);
   if (text.startsWith('/help')) return void (await api.sendMessage(msg.chat.id, HELP));
-  await api.sendMessage(msg.chat.id, WELCOME, { reply_markup: kb });
+  await sendWelcome(api, msg.chat.id);
 }
 
 async function startNewBot(api: TelegramApi, from: TgUser, chatId: number) {

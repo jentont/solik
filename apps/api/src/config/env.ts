@@ -24,6 +24,8 @@ const schema = z.object({
   MAIN_BOT_WEBHOOK_SECRET: z.string().default(''),
   // Comma-separated Telegram user ids that get the OWNER role on login
   PLATFORM_OWNER_IDS: z.string().default(''),
+  // Premium emoji pack for the main menu buttons (t.me/addemoji/<name>)
+  MENU_EMOJI_PACK: z.string().default('solutions_winter_by_solutions_chatbot'),
 
   JWT_SECRET: z.string().min(32),
   // 32-byte hex key for AES-256-GCM encryption of bot tokens

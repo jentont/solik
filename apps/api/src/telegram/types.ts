@@ -141,6 +141,9 @@ export interface TgGift {
 
 export interface TgInlineButton {
   text: string;
+  /** custom (Premium) emoji shown before the text */
+  icon_custom_emoji_id?: string;
+  style?: 'primary' | 'success' | 'danger';
   url?: string;
   callback_data?: string;
   web_app?: { url: string };

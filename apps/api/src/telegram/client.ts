@@ -223,6 +223,9 @@ export class TelegramApi {
     });
   }
 
+  getStickerSet(name: string) {
+    return this.call<{ name: string; title: string; stickers: Array<{ emoji?: string; custom_emoji_id?: string; file_id: string }> }>('getStickerSet', { name });
+  }
   getCustomEmojiStickers(ids: string[]) {
     return this.call<Array<{ custom_emoji_id: string; emoji?: string; file_id: string; thumbnail?: { file_id: string } }>>(
       'getCustomEmojiStickers',

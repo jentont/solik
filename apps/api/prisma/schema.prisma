@@ -1,0 +1,949 @@
+// SOLIK — PostgreSQL schema.
+// Telegram identifiers (user/chat ids) are stored as BigInt: they exceed 2^31.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ───────────────────────────── Users & access ─────────────────────────────
+
+enum Role {
+  USER
+  ADMIN
+  OWNER
+}
+
+model User {
+  id           String   @id @default(cuid())
+  telegramId   BigInt   @unique
+  username     String?
+  firstName    String?
+  lastName     String?
+  photoUrl     String?
+  languageCode String?
+  role         Role     @default(USER)
+  isBlocked    Boolean  @default(false)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  lastLoginAt  DateTime?
+
+  bots          TelegramBot[]
+  contests      Contest[]
+  templates     MessageTemplate[]
+  media         MediaFile[]
+  aiJobs        AIJob[]
+  nftAssets     NFTAsset[]
+  business      TelegramBusinessConnection[]
+  subscription  Subscription?
+  adminRole     AdminRole?
+  activityLogs  ActivityLog[]
+  chats         TelegramChat[]    @relation("ChatOwner")
+  channels      TelegramChannel[] @relation("ChannelOwner")
+  botSubscriptions BotSubscription[]
+  broadcasts    Broadcast[]
+}
+
+model AdminRole {
+  id          String   @id @default(cuid())
+  userId      String   @unique
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role        Role
+  permissions String[]
+  createdAt   DateTime @default(now())
+}
+
+enum Plan {
+  FREE
+  PRO
+  BUSINESS
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  PAST_DUE
+  CANCELLED
+}
+
+model Subscription {
+  id               String             @id @default(cuid())
+  userId           String             @unique
+  user             User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  plan             Plan               @default(FREE)
+  status           SubscriptionStatus @default(ACTIVE)
+  currentPeriodEnd DateTime?
+  createdAt        DateTime           @default(now())
+  updatedAt        DateTime           @updatedAt
+}
+
+// ───────────────────────────── Bots, chats, channels ─────────────────────────────
+
+enum BotStatus {
+  ACTIVE
+  DISABLED              // turned off by owner
+  SUSPENDED             // suspended by platform admin
+  SUBSCRIPTION_EXPIRED  // white-label subscription lapsed: data kept, new contests blocked
+  INVALID_TOKEN
+}
+
+model TelegramBot {
+  id              String    @id @default(cuid())
+  // null for the platform (main SOLIK) bot
+  ownerId         String?
+  owner           User?     @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  isPlatform      Boolean   @default(false)
+  telegramId      BigInt    @unique
+  username        String
+  name            String
+  tokenEncrypted  String
+  webhookSecret   String
+  status          BotStatus @default(ACTIVE)
+  canReadAll      Boolean   @default(false) // privacy mode disabled
+  defaultPrizeId  String?   // TelegramGift.id used by `.sms` when nothing else is configured
+  settings        Json      @default("{}")
+  // White-label profile (applied via setMyName / setMyDescription / setMyCommands)
+  description      String?
+  shortDescription String?
+  welcomeText      String?   // SOLIK markup, shown on /start
+  welcomeMediaId   String?
+  menuButtons      Json      @default("[]") // [{text, url}]
+  commands         Json      @default("[]") // [{command, description}]
+  avatarMediaId    String?
+  lastError       String?
+  lastActivityAt  DateTime?
+  suspendedReason String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  subscription BotSubscription?
+  botUsers     BotUser[]
+  broadcastRecipients BroadcastRecipient[]
+
+  chats        TelegramChat[]
+  channels     TelegramChannel[]
+  contests     Contest[]
+  smsCounters  SmsCounter[]
+  deliveries   GiftDelivery[]
+  starsTx      StarsTransaction[]
+  webhookLog   WebhookEvent[]
+  business     TelegramBusinessConnection[]
+  templates    MessageTemplate[]
+  mediaFileIds MediaTelegramFile[]
+
+  @@index([ownerId])
+}
+
+enum ChatKind {
+  GROUP
+  SUPERGROUP
+}
+
+enum ChatStatus {
+  ACTIVE
+  INACTIVE
+  BOT_REMOVED
+  BOT_RESTRICTED
+  PERMISSION_MISSING
+  DISCONNECTED
+  SUSPENDED
+}
+
+model TelegramChat {
+  id          String   @id @default(cuid())
+  botId       String
+  bot         TelegramBot @relation(fields: [botId], references: [id], onDelete: Cascade)
+  // user who connected this chat (bot owner, or whoever added the platform bot)
+  ownerId     String?
+  owner       User?    @relation("ChatOwner", fields: [ownerId], references: [id], onDelete: SetNull)
+  chatId      BigInt
+  kind        ChatKind
+  title       String
+  username    String?
+  status      ChatStatus @default(ACTIVE)
+  isAdmin     Boolean  @default(false)
+  permissions Json     @default("{}")
+  memberCount Int?
+  messagesProcessed Int @default(0)
+  linkedChannelChatId BigInt? // set => this is a channel discussion group
+  lastActivityAt DateTime?
+  connectedAt DateTime @default(now())
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  channels    TelegramChannel[]
+  contests    Contest[]
+
+  @@unique([botId, chatId])
+  @@index([chatId])
+  @@index([ownerId])
+  @@index([status])
+}
+
+model TelegramChannel {
+  id               String   @id @default(cuid())
+  botId            String
+  bot              TelegramBot @relation(fields: [botId], references: [id], onDelete: Cascade)
+  ownerId          String?
+  owner            User?    @relation("ChannelOwner", fields: [ownerId], references: [id], onDelete: SetNull)
+  chatId           BigInt
+  title            String
+  username         String?
+  status           ChatStatus @default(ACTIVE)
+  isAdmin          Boolean  @default(false)
+  canPost          Boolean  @default(false)
+  permissions      Json     @default("{}")
+  memberCount      Int?
+  postsProcessed   Int      @default(0)
+  lastActivityAt   DateTime?
+  connectedAt      DateTime @default(now())
+  discussionChatId String?
+  discussionChat   TelegramChat? @relation(fields: [discussionChatId], references: [id], onDelete: SetNull)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  posts            ChannelPost[]
+  contests         Contest[]
+
+  @@unique([botId, chatId])
+  @@index([ownerId])
+}
+
+// Channel posts observed by the bot. `discussionMessageId` is the id of the automatic
+// forward in the linked discussion group — comments are replies within that thread.
+model ChannelPost {
+  id                  String   @id @default(cuid())
+  channelId           String
+  channel             TelegramChannel @relation(fields: [channelId], references: [id], onDelete: Cascade)
+  messageId           Int
+  text                String?
+  discussionMessageId Int?
+  postedAt            DateTime
+  createdAt           DateTime @default(now())
+
+  @@unique([channelId, messageId])
+  @@index([channelId, discussionMessageId])
+}
+
+model TelegramBusinessConnection {
+  id                 String   @id @default(cuid())
+  ownerId            String?
+  owner              User?    @relation(fields: [ownerId], references: [id], onDelete: SetNull)
+  botId              String
+  bot                TelegramBot @relation(fields: [botId], references: [id], onDelete: Cascade)
+  connectionId       String   @unique
+  tgUserId           BigInt
+  userChatId         BigInt
+  isEnabled          Boolean  @default(true)
+  rights             Json     @default("{}")
+  canViewGifts       Boolean  @default(false)
+  canTransferGifts   Boolean  @default(false)
+  canTransferStars   Boolean  @default(false)
+  lastCheckedAt      DateTime?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  ownedGifts BusinessOwnedGift[]
+
+  @@index([ownerId])
+}
+
+model BusinessOwnedGift {
+  id                String   @id @default(cuid())
+  connectionId      String
+  connection        TelegramBusinessConnection @relation(fields: [connectionId], references: [id], onDelete: Cascade)
+  ownedGiftId       String
+  telegramGiftId    String?
+  isUnique          Boolean  @default(false)
+  name              String?
+  canBeTransferred  Boolean  @default(false)
+  transferStarCount Int?
+  reservedForPrizeId String?
+  raw               Json
+  syncedAt          DateTime @default(now())
+
+  @@unique([connectionId, ownedGiftId])
+}
+
+// ───────────────────────────── Contests ─────────────────────────────
+
+enum ContestType {
+  RANDOM
+  STARS_AUCTION   // «Перебивка»
+  FIRST_COMMENT
+  SMS_COUNTER
+  MESSAGE_GIVEAWAY
+  ACTIVITY
+  GIFTS
+  NFT
+  DICE_777        // 🎰 slot machine: three sevens (dice value 64) wins
+}
+
+enum ContestStatus {
+  DRAFT
+  SCHEDULED
+  ACTIVE
+  DRAWING
+  FINISHED
+  CANCELLED
+  ARCHIVED
+}
+
+model Contest {
+  id           String        @id @default(cuid())
+  ownerId      String
+  owner        User          @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  botId        String
+  bot          TelegramBot   @relation(fields: [botId], references: [id], onDelete: Cascade)
+  chatId       String?
+  chat         TelegramChat?    @relation(fields: [chatId], references: [id], onDelete: SetNull)
+  channelId    String?
+  channel      TelegramChannel? @relation(fields: [channelId], references: [id], onDelete: SetNull)
+  type         ContestType
+  status       ContestStatus @default(DRAFT)
+  title        String
+  description  String?
+  config       Json          @default("{}")
+  winnersCount Int           @default(1)
+  startsAt     DateTime?
+  endsAt       DateTime?
+  startedAt    DateTime?
+  finishedAt   DateTime?
+
+  // Post published to Telegram
+  postText         String?
+  postMediaId      String?
+  postMedia        MediaFile? @relation(fields: [postMediaId], references: [id], onDelete: SetNull)
+  postButtons      Json?
+  targetChatTgId   BigInt?   // chat where the post/thread lives
+  publishedMessageId Int?
+  threadMessageId  Int?      // discussion-group message id (comments thread)
+
+  // Server timer state (auction, countdowns)
+  timerVersion  Int       @default(0)
+  currentBid    Int?
+  leaderTgId    BigInt?
+  leaderName    String?
+  bidsCount     Int       @default(0)
+
+  messageCounter Int      @default(0) // MESSAGE_GIVEAWAY trigger counter
+  drawsCount     Int      @default(0)
+
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  prizes       ContestPrize[]
+  participants ContestParticipant[]
+  winners      ContestWinner[]
+  events       ContestEvent[]
+  starsTx      StarsTransaction[]
+  deliveries   GiftDelivery[]
+  smsCounter   SmsCounter?
+
+  @@index([ownerId, status])
+  @@index([botId, status])
+  @@index([targetChatTgId, status])
+  @@index([status, endsAt])
+}
+
+enum PrizeKind {
+  GIFT
+  STARS
+  NFT
+  PREMIUM
+  CUSTOM
+}
+
+model ContestPrize {
+  id          String     @id @default(cuid())
+  contestId   String
+  contest     Contest    @relation(fields: [contestId], references: [id], onDelete: Cascade)
+  kind        PrizeKind
+  title       String
+  giftId      String?
+  gift        TelegramGift? @relation(fields: [giftId], references: [id], onDelete: SetNull)
+  nftAssetId  String?
+  nftAsset    NFTAsset?  @relation(fields: [nftAssetId], references: [id], onDelete: SetNull)
+  businessOwnedGiftId String?
+  starsAmount Int?
+  premiumMonths Int?
+  quantity    Int        @default(1)
+  place       Int?       // winner place this prize is for (1-based); null = any
+  position    Int?       // SMS prize queue: participant position (e.g. 1, 5, 10, 100)
+  createdAt   DateTime   @default(now())
+
+  winners     ContestWinner[]
+  deliveries  GiftDelivery[]
+
+  @@index([contestId])
+}
+
+model ContestParticipant {
+  id          String   @id @default(cuid())
+  contestId   String
+  contest     Contest  @relation(fields: [contestId], references: [id], onDelete: Cascade)
+  tgUserId    BigInt
+  username    String?
+  firstName   String?
+  position    Int?
+  score       Int      @default(0)  // messages counted / bid amount
+  lastMessageAt DateTime?
+  lastTextHash  String?
+  isEligible  Boolean  @default(true)
+  joinedAt    DateTime @default(now())
+
+  winners     ContestWinner[]
+
+  @@unique([contestId, tgUserId])
+  @@index([contestId, score])
+}
+
+enum WinnerStatus {
+  ACTIVE
+  REROLLED
+}
+
+model ContestWinner {
+  id            String       @id @default(cuid())
+  contestId     String
+  contest       Contest      @relation(fields: [contestId], references: [id], onDelete: Cascade)
+  participantId String?
+  participant   ContestParticipant? @relation(fields: [participantId], references: [id], onDelete: SetNull)
+  tgUserId      BigInt
+  username      String?
+  firstName     String?
+  place         Int
+  drawNumber    Int
+  prizeId       String?
+  prize         ContestPrize? @relation(fields: [prizeId], references: [id], onDelete: SetNull)
+  status        WinnerStatus @default(ACTIVE)
+  seed          String       // random proof material, recorded for audit
+  createdAt     DateTime     @default(now())
+
+  deliveries    GiftDelivery[]
+
+  @@unique([contestId, drawNumber, place])
+  @@index([contestId, status])
+}
+
+model ContestEvent {
+  id        String   @id @default(cuid())
+  contestId String
+  contest   Contest  @relation(fields: [contestId], references: [id], onDelete: Cascade)
+  type      String
+  data      Json     @default("{}")
+  createdAt DateTime @default(now())
+
+  @@index([contestId, createdAt])
+}
+
+// ───────────────────────────── SMS Counter ─────────────────────────────
+
+enum SmsMode {
+  FIRST_N_USERS
+  FIRST_N_MESSAGES
+  EVERY_NTH
+  FIRST_COMMENT
+}
+
+enum SmsStatus {
+  ACTIVE
+  FILLED
+  STOPPED
+  FINISHED
+}
+
+model SmsCounter {
+  id              String     @id @default(cuid())
+  contestId       String     @unique
+  contest         Contest    @relation(fields: [contestId], references: [id], onDelete: Cascade)
+  botId           String
+  bot             TelegramBot @relation(fields: [botId], references: [id], onDelete: Cascade)
+  chatTgId        BigInt
+  threadMessageId Int?       // when bound to a channel post's comment thread
+  mode            SmsMode
+  target          Int
+  everyN          Int?
+  messagesSeen    Int        @default(0)
+  count           Int        @default(0)
+  status          SmsStatus  @default(ACTIVE)
+  startedByTgId   BigInt
+  announceEvery   Int        @default(1)
+  createdAt       DateTime   @default(now())
+  finishedAt      DateTime?
+
+  participants SmsCounterParticipant[]
+
+  @@index([chatTgId, status])
+}
+
+model SmsCounterParticipant {
+  id          String   @id @default(cuid())
+  counterId   String
+  counter     SmsCounter @relation(fields: [counterId], references: [id], onDelete: Cascade)
+  tgUserId    BigInt
+  username    String?
+  firstName   String?
+  position    Int
+  messageId   Int
+  createdAt   DateTime @default(now())
+
+  @@unique([counterId, position])
+  @@index([counterId, tgUserId])
+}
+
+// ───────────────────────────── Prizes: gifts, stars, NFT ─────────────────────────────
+
+enum GiftType {
+  REGULAR
+  LIMITED
+  COLLECTIBLE
+  REMOVED
+  NFT
+}
+
+enum GiftAvailability {
+  AVAILABLE
+  SOLD_OUT
+  REMOVED
+  UNKNOWN
+}
+
+model TelegramGift {
+  id              String   @id @default(cuid())
+  telegramGiftId  String   @unique
+  name            String
+  type            GiftType @default(REGULAR)
+  imageUrl        String?
+  stickerFileId   String?
+  emoji           String?
+  collection      String?
+  rarity          String?
+  starCost        Int?
+  upgradeStarCost Int?
+  transferable    Boolean  @default(false)  // can be sent automatically by a bot (sendGift)
+  availability    GiftAvailability @default(UNKNOWN)
+  totalCount      Int?
+  remainingCount  Int?
+  lastVerifiedAt  DateTime?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  prizes     ContestPrize[]
+  deliveries GiftDelivery[]
+
+  @@index([type, availability])
+}
+
+enum DeliveryStatus {
+  PENDING
+  PROCESSING
+  DELIVERED
+  FAILED
+  MANUAL_REQUIRED
+}
+
+enum DeliveryMethod {
+  BOT_SEND_GIFT
+  BUSINESS_TRANSFER
+  PREMIUM_GIFT
+  NFT_PROVIDER
+  MANUAL
+}
+
+model GiftDelivery {
+  id             String          @id @default(cuid())
+  idempotencyKey String          @unique
+  botId          String
+  bot            TelegramBot     @relation(fields: [botId], references: [id], onDelete: Cascade)
+  contestId      String?
+  contest        Contest?        @relation(fields: [contestId], references: [id], onDelete: SetNull)
+  winnerId       String?
+  winner         ContestWinner?  @relation(fields: [winnerId], references: [id], onDelete: SetNull)
+  prizeId        String?
+  prize          ContestPrize?   @relation(fields: [prizeId], references: [id], onDelete: SetNull)
+  giftId         String?
+  gift           TelegramGift?   @relation(fields: [giftId], references: [id], onDelete: SetNull)
+  recipientTgId  BigInt
+  recipientName  String?
+  method         DeliveryMethod
+  status         DeliveryStatus  @default(PENDING)
+  attempts       Int             @default(0)
+  error          String?
+  note           String?
+  deliveredAt    DateTime?
+  deliveredBy    String?         // userId for manual confirmation
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+
+  @@index([botId, status])
+  @@index([contestId])
+}
+
+enum StarsTxStatus {
+  PENDING    // invoice issued
+  PAID       // successful_payment received
+  APPLIED    // accepted as a bid
+  REJECTED   // pre-checkout declined
+  REFUNDED
+}
+
+model StarsTransaction {
+  id                      String        @id @default(cuid())
+  botId                   String
+  bot                     TelegramBot   @relation(fields: [botId], references: [id], onDelete: Cascade)
+  contestId               String?
+  contest                 Contest?      @relation(fields: [contestId], references: [id], onDelete: SetNull)
+  tgUserId                BigInt
+  username                String?
+  amount                  Int
+  kind                    String        @default("BID")
+  status                  StarsTxStatus @default(PENDING)
+  telegramPaymentChargeId String?       @unique
+  refundReason            String?
+  createdAt               DateTime      @default(now())
+  updatedAt               DateTime      @updatedAt
+
+  @@index([contestId, status])
+}
+
+enum NftStatus {
+  AVAILABLE
+  RESERVED
+  TRANSFERRED
+}
+
+model NFTAsset {
+  id              String    @id @default(cuid())
+  ownerId         String
+  owner           User      @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  provider        String    // "telegram-gift" | "ton" | "manual" ...
+  network         String?
+  contractAddress String?
+  tokenId         String?
+  name            String
+  imageUrl        String?
+  externalUrl     String?
+  status          NftStatus @default(AVAILABLE)
+  transferRef     String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  prizes ContestPrize[]
+
+  @@index([ownerId])
+}
+
+// ───────────────────────────── Content ─────────────────────────────
+
+enum TemplateKey {
+  CONTEST_START
+  PARTICIPANT_REGISTERED
+  WINNER
+  LOSER
+  GIFT_RECEIVED
+  CONTEST_FINISHED
+  ERROR
+  SMS_STARTED
+  SMS_REGISTERED
+  SMS_FILLED
+  RESULTS
+  AUCTION_BID
+  AUCTION_FINISHED
+  AUCTION_WARNING
+  AUCTION_COUNTDOWN
+  INSTANT_WIN     // win announced as a reply to the winning comment/message
+  CHANCE_WIN      // "получил NFT за активность! Шанс был: 0,9%"
+  DICE_WIN        // 🎰 777
+  NOTIFICATION
+}
+
+model MessageTemplate {
+  id        String      @id @default(cuid())
+  ownerId   String
+  owner     User        @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  botId     String?
+  bot       TelegramBot? @relation(fields: [botId], references: [id], onDelete: Cascade)
+  key       TemplateKey
+  name      String
+  text      String      // SOLIK markup (safe HTML subset + {variables})
+  mediaId   String?
+  media     MediaFile?  @relation(fields: [mediaId], references: [id], onDelete: SetNull)
+  buttons   Json        @default("[]")
+  isActive  Boolean     @default(true)
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+
+  @@index([ownerId, key])
+}
+
+model PremiumEmoji {
+  id            String   @id @default(cuid())
+  customEmojiId String   @unique
+  name          String
+  category      String   @default("general")
+  fallback      String   @default("⭐")
+  previewUrl    String?
+  stickerFileId String?
+  isActive      Boolean  @default(true)
+  createdAt     DateTime @default(now())
+}
+
+enum MediaKind {
+  PHOTO
+  ANIMATION
+  VIDEO
+}
+
+model MediaFile {
+  id        String    @id @default(cuid())
+  ownerId   String
+  owner     User      @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  kind      MediaKind
+  path      String
+  mime      String
+  size      Int
+  width     Int?
+  height    Int?
+  source    String    @default("upload") // upload | ai
+  createdAt DateTime  @default(now())
+
+  telegramFiles MediaTelegramFile[]
+  templates     MessageTemplate[]
+  contests      Contest[]
+
+  @@index([ownerId])
+}
+
+// file_id is bot-specific in Telegram, so it is cached per bot.
+model MediaTelegramFile {
+  id      String      @id @default(cuid())
+  mediaId String
+  media   MediaFile   @relation(fields: [mediaId], references: [id], onDelete: Cascade)
+  botId   String
+  bot     TelegramBot @relation(fields: [botId], references: [id], onDelete: Cascade)
+  fileId  String
+
+  @@unique([mediaId, botId])
+}
+
+enum AIJobStatus {
+  QUEUED
+  RUNNING
+  DONE
+  FAILED
+}
+
+model AIJob {
+  id        String      @id @default(cuid())
+  ownerId   String
+  owner     User        @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  kind      String      // TEXT | IMAGE
+  status    AIJobStatus @default(QUEUED)
+  provider  String
+  model     String?
+  input     Json
+  output    Json?
+  error     String?
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+
+  @@index([ownerId, createdAt])
+}
+
+// ───────────────────────────── Logs ─────────────────────────────
+
+model WebhookEvent {
+  id          String    @id @default(cuid())
+  botId       String?
+  bot         TelegramBot? @relation(fields: [botId], references: [id], onDelete: Cascade)
+  botKey      String    // bot id or "main"
+  updateId    BigInt
+  type        String
+  error       String?
+  receivedAt  DateTime  @default(now())
+  processedAt DateTime?
+
+  @@unique([botKey, updateId])
+  @@index([receivedAt])
+}
+
+model ActivityLog {
+  id          String   @id @default(cuid())
+  actorId     String?
+  actor       User?    @relation(fields: [actorId], references: [id], onDelete: SetNull)
+  action      String
+  entity      String?
+  entityId    String?
+  meta        Json     @default("{}")
+  ip          String?
+  level       String   @default("info") // info | warn | error
+  createdAt   DateTime @default(now())
+
+  @@index([actorId, createdAt])
+  @@index([level, createdAt])
+}
+
+model PlatformSetting {
+  key       String   @id
+  value     Json
+  updatedAt DateTime @updatedAt
+}
+
+// ───────────────────────────── White-label subscriptions ─────────────────────────────
+
+// Tariffs; price is editable from the admin panel without code changes.
+model WhiteLabelPlan {
+  id          String   @id @default(cuid())
+  code        String   @unique
+  name        String
+  priceStars  Int
+  periodDays  Int      @default(30)
+  graceDays   Int      @default(3)
+  limits      Json     @default("{}")
+  isActive    Boolean  @default(true)
+  isDefault   Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  subscriptions BotSubscription[]
+}
+
+enum BotSubStatus {
+  PENDING    // created, not paid yet
+  ACTIVE
+  GRACE      // period ended, grace window running
+  EXPIRED
+  CANCELLED  // auto-renewal cancelled; usable until periodEnd
+}
+
+// One subscription = one white-label bot slot. The slot exists before a bot is attached.
+model BotSubscription {
+  id              String       @id @default(cuid())
+  ownerId         String
+  owner           User         @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  botId           String?      @unique
+  bot             TelegramBot? @relation(fields: [botId], references: [id], onDelete: SetNull)
+  planId          String
+  plan            WhiteLabelPlan @relation(fields: [planId], references: [id])
+  status          BotSubStatus @default(PENDING)
+  priceStars      Int          // price locked at purchase
+  autoRenew       Boolean      @default(true)
+  // charge id of the first payment of a Telegram Stars subscription — needed for editUserStarSubscription
+  subscriptionChargeId String?
+  periodStart     DateTime?
+  periodEnd       DateTime?
+  graceUntil      DateTime?
+  cancelledAt     DateTime?
+  notifiedExpiringAt DateTime?
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  payments SubscriptionPayment[]
+
+  @@index([ownerId])
+  @@index([status, periodEnd])
+}
+
+model SubscriptionPayment {
+  id                      String   @id @default(cuid())
+  subscriptionId          String
+  subscription            BotSubscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+  amount                  Int
+  telegramPaymentChargeId String   @unique
+  isRecurring             Boolean  @default(false)
+  periodStart             DateTime
+  periodEnd               DateTime
+  refunded                Boolean  @default(false)
+  paidAt                  DateTime @default(now())
+
+  @@index([paidAt])
+}
+
+// Users who started a dialog with a bot — the only allowed recipients of user broadcasts.
+model BotUser {
+  id         String   @id @default(cuid())
+  botId      String
+  bot        TelegramBot @relation(fields: [botId], references: [id], onDelete: Cascade)
+  tgUserId   BigInt
+  username   String?
+  firstName  String?
+  isBlocked  Boolean  @default(false)
+  startedAt  DateTime @default(now())
+  lastSeenAt DateTime @default(now())
+
+  @@unique([botId, tgUserId])
+  @@index([botId, isBlocked])
+}
+
+// ───────────────────────────── Broadcasts ─────────────────────────────
+
+enum BroadcastMode {
+  ALL_CHATS          // every connected group/supergroup (main + white-label), deduped by chat id
+  WHITE_LABEL_CHATS  // chats of white-label bots only
+  MAIN_BOT_CHATS     // chats of the platform bot only
+  MAIN_BOT_USERS     // users who started the platform bot
+}
+
+enum BroadcastStatus {
+  DRAFT
+  QUEUED
+  RUNNING
+  STOPPED
+  COMPLETED
+}
+
+model Broadcast {
+  id             String          @id @default(cuid())
+  createdById    String
+  createdBy      User            @relation(fields: [createdById], references: [id])
+  mode           BroadcastMode
+  filters        Json            @default("{}")
+  viaBotId       String?         // force sending through a specific bot
+  text           String
+  mediaId        String?
+  buttons        Json            @default("[]")
+  status         BroadcastStatus @default(DRAFT)
+  total          Int             @default(0)
+  sent           Int             @default(0)
+  failed         Int             @default(0)
+  blocked        Int             @default(0)
+  permissionLost Int             @default(0)
+  startedAt      DateTime?
+  finishedAt     DateTime?
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+
+  recipients BroadcastRecipient[]
+
+  @@index([status])
+}
+
+enum RecipientStatus {
+  PENDING
+  SENT
+  FAILED
+  BLOCKED
+  PERMISSION_LOST
+  SKIPPED
+}
+
+model BroadcastRecipient {
+  id          String          @id @default(cuid())
+  broadcastId String
+  broadcast   Broadcast       @relation(fields: [broadcastId], references: [id], onDelete: Cascade)
+  botId       String
+  bot         TelegramBot     @relation(fields: [botId], references: [id], onDelete: Cascade)
+  chatTgId    BigInt
+  status      RecipientStatus @default(PENDING)
+  attempts    Int             @default(0)
+  error       String?
+  sentAt      DateTime?
+
+  // dedup: one Telegram chat id receives a broadcast once, whichever bot is used
+  @@unique([broadcastId, chatTgId])
+  @@index([broadcastId, status])
+}

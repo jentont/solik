@@ -1,0 +1,170 @@
+[
+  {
+    "telegramGiftId": "6046178578163303744",
+    "name": "Мишка-спецназ",
+    "type": "REMOVED",
+    "emoji": "🧸",
+    "imageUrl": "/gifts/6046178578163303744.webp",
+    "starCost": 50
+  },
+  {
+    "telegramGiftId": "5992502615223568003",
+    "name": "Хэллоуинский мишка",
+    "type": "REMOVED",
+    "emoji": "🧸",
+    "imageUrl": "/gifts/5992502615223568003.webp",
+    "starCost": 50
+  },
+  {
+    "telegramGiftId": "5969796561943660080",
+    "name": "Пасхальный мишка",
+    "type": "REMOVED",
+    "emoji": "🧸",
+    "imageUrl": "/gifts/5969796561943660080.webp",
+    "starCost": 50
+  },
+  {
+    "telegramGiftId": "6026193266406327981",
+    "name": "Мишка-строитель",
+    "type": "REMOVED",
+    "emoji": "🧸",
+    "imageUrl": "/gifts/6026193266406327981.webp",
+    "starCost": 50
+  },
+  {
+    "telegramGiftId": "5974210632977745012",
+    "name": "Футбольный мишка",
+    "type": "REMOVED",
+    "emoji": "🧸",
+    "imageUrl": "/gifts/5974210632977745012.webp",
+    "starCost": 50
+  },
+  {
+    "telegramGiftId": "5893356958802511476",
+    "name": "Мишка Святого Патрика",
+    "type": "REMOVED",
+    "emoji": "🧸",
+    "imageUrl": "/gifts/5893356958802511476.webp",
+    "starCost": 50
+  },
+  {
+    "telegramGiftId": "5935895822435615975",
+    "name": "Мишка-клоун",
+    "type": "REMOVED",
+    "emoji": "🧸",
+    "imageUrl": "/gifts/5935895822435615975.webp",
+    "starCost": 50
+  },
+  {
+    "telegramGiftId": "5801108895304779062",
+    "name": "I Love U",
+    "type": "REMOVED",
+    "emoji": "💝",
+    "imageUrl": "/gifts/5801108895304779062.webp",
+    "starCost": 50
+  },
+  {
+    "telegramGiftId": "5800655655995968830",
+    "name": "Мишка с сердцем",
+    "type": "REMOVED",
+    "emoji": "🧸",
+    "imageUrl": "/gifts/5800655655995968830.webp",
+    "starCost": 50
+  },
+  {
+    "telegramGiftId": "5866352046986232958",
+    "name": "Мишка с букетом",
+    "type": "REMOVED",
+    "emoji": "🧸",
+    "imageUrl": "/gifts/5866352046986232958.webp",
+    "starCost": 50
+  },
+  {
+    "telegramGiftId": "5922558454332916696",
+    "name": "Новогодняя ёлка",
+    "type": "REMOVED",
+    "emoji": "🎄",
+    "imageUrl": "/gifts/5922558454332916696.webp",
+    "starCost": 50
+  },
+  {
+    "telegramGiftId": "5956217000635139069",
+    "name": "Новогодний мишка",
+    "type": "REMOVED",
+    "emoji": "🧸",
+    "imageUrl": "/gifts/5956217000635139069.webp",
+    "starCost": 50
+  },
+  {
+    "telegramGiftId": "5170233102089322756",
+    "name": "Мишка",
+    "type": "REGULAR",
+    "emoji": "🧸",
+    "imageUrl": "/gifts/5170233102089322756.webp",
+    "starCost": 15
+  },
+  {
+    "telegramGiftId": "5170145012310081615",
+    "name": "Сердечко",
+    "type": "REGULAR",
+    "emoji": "💝",
+    "imageUrl": "/gifts/5170145012310081615.webp",
+    "starCost": 15
+  },
+  {
+    "telegramGiftId": "5168103777563050263",
+    "name": "Роза",
+    "type": "REGULAR",
+    "emoji": "🌹",
+    "imageUrl": "/gifts/5168103777563050263.webp",
+    "starCost": 25
+  },
+  {
+    "telegramGiftId": "5170250947678437525",
+    "name": "Подарок",
+    "type": "REGULAR",
+    "emoji": "🎁",
+    "imageUrl": "/gifts/5170250947678437525.webp",
+    "starCost": 25
+  },
+  {
+    "telegramGiftId": "5170564780938756245",
+    "name": "Ракета",
+    "type": "REGULAR",
+    "emoji": "🚀",
+    "imageUrl": "/gifts/5170564780938756245.webp",
+    "starCost": 50
+  },
+  {
+    "telegramGiftId": "5170690322832818290",
+    "name": "Кольцо",
+    "type": "REGULAR",
+    "emoji": "💍",
+    "imageUrl": "/gifts/5170690322832818290.webp",
+    "starCost": 100
+  },
+  {
+    "telegramGiftId": "5170314324215857265",
+    "name": "Букет",
+    "type": "REGULAR",
+    "emoji": "💐",
+    "imageUrl": "/gifts/5170314324215857265.webp",
+    "starCost": 50
+  },
+  {
+    "telegramGiftId": "5170144170496491616",
+    "name": "Торт",
+    "type": "REGULAR",
+    "emoji": "🎂",
+    "imageUrl": "/gifts/5170144170496491616.webp",
+    "starCost": 50
+  },
+  {
+    "telegramGiftId": "5170521118301225164",
+    "name": "Алмаз",
+    "type": "REGULAR",
+    "emoji": "💎",
+    "imageUrl": "/gifts/5170521118301225164.webp",
+    "starCost": 100
+  }
+]

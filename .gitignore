@@ -1,0 +1,12 @@
+node_modules
+.env
+.env.*
+!.env.example
+dist
+.next
+coverage
+uploads
+*.log
+apps/api/prisma/*.db
+.claude/
+.idea/

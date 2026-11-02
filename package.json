@@ -1,0 +1,32 @@
+{
+  "name": "solik",
+  "private": true,
+  "version": "0.1.0",
+  "workspaces": [
+    "apps/*"
+  ],
+  "scripts": {
+    "dev:api": "npm run dev -w apps/api",
+    "dev:worker": "npm run worker:dev -w apps/api",
+    "dev:web": "npm run dev -w apps/web",
+    "build": "npm run build -w apps/api && npm run build -w apps/web",
+    "test": "npm run test -w apps/api",
+    "typecheck": "npm run typecheck -w apps/api && npm run typecheck -w apps/web",
+    "db:migrate": "npm run db:migrate -w apps/api",
+    "db:generate": "npm run db:generate -w apps/api",
+    "import:gifts": "npm run import:gifts -w apps/api",
+    "import:emoji": "npm run import:emoji -w apps/api"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "allowScripts": {
+    "esbuild@0.28.2": true,
+    "msgpackr-extract@3.0.6": true,
+    "prisma@6.19.3": true,
+    "sharp@0.33.5": true,
+    "sharp@0.35.5": true,
+    "@prisma/client@6.19.3": true,
+    "@prisma/engines@6.19.3": true
+  }
+}

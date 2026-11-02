@@ -1,0 +1,185 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/*
+ * Shared design language with Mirrows (Solutions Design): light by default, one blue for every action,
+ * white cards read by edge + soft blue-tinted shadow, sticker-outline wallpaper. Dark follows Telegram.
+ * Gold is reserved for Telegram Stars only.
+ */
+:root {
+  --bg: 245 245 247; /* #F5F5F7 */
+  --surface: 255 255 255;
+  --elevated: 242 242 247;
+  --line: 0 0 0;
+  --fg: 29 29 31; /* #1D1D1F */
+  --muted: 110 110 115; /* #6E6E73 */
+  --accent: 0 113 227; /* #0071E3 — everything tappable */
+  --sky: 0 113 227;
+  --gold: 240 160 20; /* Stars */
+  --ribbon: 255 59 48;
+  --ok: 40 180 90;
+  --warn: 245 140 0;
+  --bad: 255 59 48;
+  --card-shadow: 0 8px 28px rgba(23, 61, 122, 0.1);
+  --glass: rgba(255, 255, 255, 0.78);
+  --pattern-opacity: 0.05;
+  color-scheme: light;
+}
+html.dark {
+  --bg: 0 0 0;
+  --surface: 28 28 30; /* #1C1C1E */
+  --elevated: 44 44 46;
+  --line: 255 255 255;
+  --fg: 245 245 247;
+  --muted: 161 161 166;
+  --accent: 41 151 255; /* #2997FF */
+  --sky: 41 151 255;
+  --gold: 255 194 61;
+  --ribbon: 255 69 58;
+  --ok: 48 209 88;
+  --warn: 255 159 10;
+  --bad: 255 69 58;
+  --card-shadow: 0 8px 28px rgba(0, 0, 0, 0.45);
+  --glass: rgba(28, 28, 30, 0.72);
+  --pattern-opacity: 0.08;
+  color-scheme: dark;
+}
+
+html {
+  background: rgb(var(--bg));
+}
+/* body stays transparent so the wallpaper (body::before, z-index -1) sits between page colour and content */
+body {
+  color: rgb(var(--fg));
+  -webkit-font-smoothing: antialiased;
+  font-feature-settings: 'tnum' 0;
+}
+
+body {
+  min-height: 100dvh;
+  position: relative;
+}
+/* Wallpaper: outlines of the Solutions sticker set, like Telegram chat wallpapers. Tinted by the theme. */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background: rgb(var(--fg));
+  opacity: var(--pattern-opacity);
+  -webkit-mask: url(/brand/pattern.png) 0 0 / 300px 300px repeat;
+  mask: url(/brand/pattern.png) 0 0 / 300px 300px repeat;
+}
+
+@layer base {
+  /* single-column grids must not grow wider than the screen; grid-cols-* utilities override this */
+  .grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  :focus-visible {
+    outline: 2px solid rgb(var(--accent));
+    outline-offset: 2px;
+  }
+}
+
+::selection {
+  background: rgb(var(--gold) / 0.35);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+@layer components {
+  .card {
+    @apply rounded-3xl border border-line/[0.06] bg-surface;
+    box-shadow: var(--card-shadow);
+  }
+  .glass {
+    background: var(--glass);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
+    backdrop-filter: blur(20px) saturate(180%);
+  }
+  .input {
+    @apply w-full rounded-2xl border border-line/[0.08] bg-surface px-4 py-3 text-[15px] text-fg outline-none transition placeholder:text-muted/70 focus:border-accent/60 focus:ring-4 focus:ring-accent/10;
+  }
+  .label {
+    @apply mb-1.5 block text-[13px] font-medium text-muted;
+  }
+  .num {
+    font-variant-numeric: tabular-nums;
+  }
+
+  /*
+   * Ticket: the signature shape for contests. Two circular notches cut at --notch from the top,
+   * with a perforated line between them separating the stub (title) from the body (stats).
+   */
+  .ticket {
+    --notch: 76px;
+    --r: 10px;
+    position: relative;
+    border-radius: 24px;
+    background: rgb(var(--surface));
+    filter: drop-shadow(0 8px 20px rgba(23, 61, 122, 0.08));
+    -webkit-mask:
+      radial-gradient(circle var(--r) at 0 var(--notch), #0000 98%, #000) left / 51% 100% no-repeat,
+      radial-gradient(circle var(--r) at 100% var(--notch), #0000 98%, #000) right / 51% 100% no-repeat;
+    mask:
+      radial-gradient(circle var(--r) at 0 var(--notch), #0000 98%, #000) left / 51% 100% no-repeat,
+      radial-gradient(circle var(--r) at 100% var(--notch), #0000 98%, #000) right / 51% 100% no-repeat;
+  }
+  .ticket-perf {
+    position: absolute;
+    left: calc(var(--r) + 6px);
+    right: calc(var(--r) + 6px);
+    top: var(--notch);
+    border-top: 2px dashed rgb(var(--line) / 0.09);
+  }
+
+  .scroll-thin::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  .scroll-thin::-webkit-scrollbar-thumb {
+    background: rgb(var(--line) / 0.12);
+    border-radius: 6px;
+  }
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .no-scrollbar {
+    scrollbar-width: none;
+  }
+}
+
+/* Telegram message preview */
+.tg-msg b, .tg-msg strong { font-weight: 700; }
+.tg-msg i, .tg-msg em { font-style: italic; }
+.tg-msg u, .tg-msg ins { text-decoration: underline; }
+.tg-msg s, .tg-msg del, .tg-msg strike { text-decoration: line-through; }
+.tg-msg a { color: #6ab3f3; }
+.tg-msg code { font-family: ui-monospace, monospace; background: rgb(0 0 0 / 0.25); padding: 0 4px; border-radius: 4px; }
+.tg-msg pre { font-family: ui-monospace, monospace; background: rgb(0 0 0 / 0.25); padding: 8px; border-radius: 8px; white-space: pre-wrap; }
+.tg-msg blockquote { border-left: 3px solid #6ab3f3; padding-left: 8px; margin: 4px 0; background: rgb(106 179 243 / 0.08); border-radius: 4px; }
+.tg-msg tg-spoiler, .tg-msg .tg-spoiler { background: rgb(255 255 255 / 0.25); color: transparent; border-radius: 4px; cursor: pointer; transition: all .2s; }
+.tg-msg tg-spoiler:hover, .tg-msg .tg-spoiler:hover { color: inherit; background: transparent; }
+.tg-msg tg-emoji { display: inline-block; }
+.tg-msg tg-emoji img { width: 1.25em; height: 1.25em; vertical-align: -0.25em; display: inline-block; }
+
+/* Bottom tab bar icons are the Mirrows Lottie set: single-colour, so they take the tab colour. */
+.tab-icon svg { display: block; width: 100%; height: 100%; }
+.tab-icon svg path,
+.tab-icon svg g { fill: currentColor; }
+@keyframes tab-pop {
+  0% { transform: scale(0.82); }
+  55% { transform: scale(1.12) translateY(-2px); }
+  100% { transform: scale(1) translateY(-1px); }
+}
+.tab-on .tab-icon { animation: tab-pop 0.34s ease; }

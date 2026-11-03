@@ -1,6 +1,6 @@
 'use client';
 
-import { ArrowRight, CircleHelp, Trophy } from 'lucide-react';
+import { ArrowRight, CircleHelp, Trophy, Zap } from 'lucide-react';
 import Link from 'next/link';
 import { useApi } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
@@ -102,6 +102,17 @@ export default function DashboardPage() {
           </span>
         </Link>
       </section>
+
+      <Link href="/contests/quick" className="card press flex min-h-[72px] w-full items-center gap-4 px-4">
+        <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-gold/15 text-gold">
+          <Zap className="h-6 w-6" />
+        </span>
+        <span className="min-w-0 flex-1">
+          <span className="block font-display text-[17px]">Быстрый розыгрыш</span>
+          <span className="block text-[15px] text-muted">приз, таймер — и пост в чате за 10 секунд</span>
+        </span>
+        <ArrowRight className="h-5 w-5 text-muted" />
+      </Link>
 
       <button onClick={openTour} className="card press flex min-h-[72px] w-full items-center gap-4 px-4 text-left">
         <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-pink/15 text-pink">

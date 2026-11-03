@@ -225,3 +225,15 @@ describe('chat status from bot membership', () => {
     expect(statusFromMember(m('member'), false)).toBe('PERMISSION_MISSING');
   });
 });
+
+describe('quick giveaway command', () => {
+  it('parses time, winners and prize', async () => {
+    const { parseQuickCommand } = await import('../src/modules/quick/service.js');
+    expect(parseQuickCommand('.розыгрыш 10м 2 Новогодний мишка')).toEqual({ durationSec: 600, winners: 2, prize: 'Новогодний мишка' });
+    expect(parseQuickCommand('/fast@solikgiftbot 30s Rose')).toEqual({ durationSec: 30, winners: 1, prize: 'Rose' });
+    expect(parseQuickCommand('.розыгрыш 1д Кольцо')).toMatchObject({ durationSec: 86400, winners: 1 });
+    expect(parseQuickCommand('.розыгрыш')).toBe('help');
+    expect(parseQuickCommand('.розыгрыш 5с 999 Мишка')).toMatchObject({ durationSec: 30, winners: 100 }); // clamped
+    expect(parseQuickCommand('привет .розыгрыш')).toBeNull();
+  });
+});

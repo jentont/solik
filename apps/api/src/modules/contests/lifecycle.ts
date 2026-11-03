@@ -235,6 +235,8 @@ export async function joinContest(contestId: string, user: { id: number; usernam
     const owner = await prisma.user.findUnique({ where: { id: contest.bot.ownerId } });
     if (owner && Number(owner.telegramId) === user.id) return { ok: false as const, message: 'Организатор не участвует' };
   }
+  // whoever launched a quick giveaway can't win it
+  if (cfg.organizerTgId && String(cfg.organizerTgId) === String(user.id)) return { ok: false as const, message: 'Организатор не участвует' };
   // Required subscriptions: checked via getChatMember (bot must be admin there)
   const required: string[] = Array.isArray(cfg.requiredChats) ? cfg.requiredChats : [];
   if (required.length) {

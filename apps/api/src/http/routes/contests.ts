@@ -175,6 +175,39 @@ export async function contestRoutes(app: FastifyInstance) {
     return contest;
   });
 
+  /** Quick giveaway from the app: chat + prize + timer → posted right away. */
+  app.post('/api/contests/quick', { config: { rateLimit: { max: 10, timeWindow: '1 minute' } } }, async (req) => {
+    const userId = uid(req);
+    const body = parse(
+      z.object({
+        chatId: z.string(),
+        prize: z.string().min(1).max(120),
+        giftId: z.string().optional(),
+        winners: z.number().int().min(1).max(100).default(1),
+        minutes: z.number().int().min(1).max(7 * 24 * 60).default(10),
+      }),
+      req.body,
+    );
+    const chat = await ownChat(userId, body.chatId);
+    const bot = await prisma.telegramBot.findUniqueOrThrow({ where: { id: chat.botId } });
+    assertBotUsable(bot);
+    await assertContestLimit(userId);
+    await assertTgAdmin(bot, chat.chatId, req.user!.telegramId, `чате «${chat.title}»`);
+    const { launchQuick } = await import('../../modules/quick/service.js');
+    return launchQuick({
+      bot,
+      ownerId: userId,
+      chatId: chat.id,
+      chatTgId: chat.chatId,
+      prize: body.prize,
+      giftId: body.giftId,
+      winners: body.winners,
+      durationSec: body.minutes * 60,
+      organizerTgId: BigInt(req.user!.telegramId),
+      allowPaidGift: bot.isPlatform || bot.ownerId === userId,
+    });
+  });
+
   app.patch<{ Params: { id: string } }>('/api/contests/:id', async (req) => {
     const userId = uid(req);
     const c = await ownContest(userId, req.params.id);

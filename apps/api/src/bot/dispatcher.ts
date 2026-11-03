@@ -14,6 +14,7 @@ import { handleDice } from '../modules/dice/service.js';
 import { confirmSmsReset, handleSmsCommand, handleSmsMessage } from '../modules/sms/service.js';
 import { handleSubscriptionPayment, handleSubscriptionPreCheckout } from '../modules/subscriptions/service.js';
 import { handleGuardCallback } from '../modules/guard/service.js';
+import { handleQuickCommand } from '../modules/quick/service.js';
 import { notifyStatusText, rememberChatMember, setNotify } from '../modules/notify/service.js';
 import { handleMainCallback, handleMainPrivate } from './mainMenu.js';
 
@@ -69,6 +70,7 @@ export async function dispatchUpdate(bot: TelegramBot, u: TgUpdate) {
   await rememberChatMember(bot, msg).catch(() => undefined);
   if (msg.is_automatic_forward) return handleAutomaticForward(bot, msg);
   if (bot.status !== 'ACTIVE') return; // suspended/expired bots only keep tracking, no contest activity
+  if (await handleQuickCommand(api, bot, msg)) return;
   if (await handleSmsCommand(api, bot, msg)) return;
   if (msg.dice && (await handleDice(api, bot, msg))) return;
   if (msg.paid_star_count && (await handlePaidMessageBid(bot, msg))) return;

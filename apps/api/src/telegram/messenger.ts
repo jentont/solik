@@ -110,7 +110,9 @@ export async function sendTemplate(
   key: TemplateKey,
   vars: TemplateVars,
   opts: SendOptions = {},
+  // a contest's own picture replaces the template's one
+  mediaOverride?: MediaFile | null,
 ) {
   const tpl = await resolveTemplate(ctx.ownerId, ctx.botId, key);
-  return sendRich(api, ctx.botId, chatId, { html: renderTemplate(tpl.text, vars), media: tpl.media, buttons: tpl.buttons }, opts);
+  return sendRich(api, ctx.botId, chatId, { html: renderTemplate(tpl.text, vars), media: mediaOverride ?? tpl.media, buttons: tpl.buttons }, opts);
 }

@@ -11,7 +11,7 @@ import { CONTEST_TYPES, cn, fmtDate } from '@/lib/format';
 import { GiftCard, type Gift } from '@/components/GiftCard';
 import { GiftSticker } from '@/components/GiftSticker';
 import { TypeIcon } from '@/components/TypeIcon';
-import { MessageEditor, type MessageValue } from '@/components/MessageEditor';
+import { MediaPicker, MessageEditor, type MessageValue } from '@/components/MessageEditor';
 import { TelegramPreview } from '@/components/TelegramPreview';
 import { Badge, Button, Card, CardTitle, Empty, Input, Loading, Modal, PageHeader, Select, Toggle } from '@/components/ui';
 
@@ -421,6 +421,7 @@ function ConditionsStep({ type, config, setConfig, prizes, setPrizes, chatId }: 
   return (
     <Card className="max-w-2xl space-y-4">
       <WinFrom chatId={chatId} value={config.winFrom ?? ''} onChange={(v) => set('winFrom', v)} />
+      <WinMedia config={config} setConfig={setConfig} />
       {['RANDOM', 'GIFTS', 'NFT'].includes(type) && (
         <>
           <Input label="Текст кнопки участия" value={config.joinButtonText ?? 'Участвовать'} onChange={(e) => set('joinButtonText', e.target.value)} />
@@ -800,6 +801,43 @@ function WinFrom({ chatId, value, onChange }: { chatId?: string; value: string; 
         <option value="__custom">Другой @username…</option>
       </Select>
       {custom && <Input placeholder="@username" value={value ? `@${value}` : ''} onChange={(e) => onChange(e.target.value.replace(/[^A-Za-z0-9_]/g, '').slice(0, 32))} />}
+    </div>
+  );
+}
+
+/** Own picture (photo / GIF / video) sent with the congratulation in this contest. */
+function WinMedia({ config, setConfig }: { config: Record<string, any>; setConfig(c: Record<string, any>): void }) {
+  const [open, setOpen] = useState(false);
+  const has = !!config.winMediaId;
+  return (
+    <div>
+      <span className="label">Картинка к поздравлению</span>
+      <div className="flex items-center gap-3 rounded-2xl border border-white/[0.12] bg-white/[0.04] p-3">
+        {has ? (
+          config.winMediaKind === 'PHOTO' || !config.winMediaKind ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={config.winMediaUrl} alt="" className="h-16 w-16 shrink-0 rounded-xl object-cover" />
+          ) : (
+            <video src={config.winMediaUrl} muted autoPlay loop playsInline className="h-16 w-16 shrink-0 rounded-xl object-cover" />
+          )
+        ) : (
+          <span className="flex h-16 w-16 shrink-0 items-center justify-center rounded-xl bg-white/[0.06] text-[13px] text-muted">нет</span>
+        )}
+        <div className="min-w-0 flex-1 text-[14px] leading-snug text-muted">
+          {has ? 'Бот пришлёт её вместе с «Поздравляю! Ты выиграл …»' : 'Фото, GIF или видео — придёт вместе с поздравлением победителю'}
+        </div>
+        <div className="flex shrink-0 flex-col gap-2">
+          <Button size="sm" variant="secondary" onClick={() => setOpen(true)}>
+            {has ? 'Заменить' : 'Выбрать'}
+          </Button>
+          {has && (
+            <Button size="sm" variant="ghost" onClick={() => setConfig({ ...config, winMediaId: undefined, winMediaUrl: undefined, winMediaKind: undefined })}>
+              Убрать
+            </Button>
+          )}
+        </div>
+      </div>
+      <MediaPicker open={open} onClose={() => setOpen(false)} onPick={(m) => setConfig({ ...config, winMediaId: m.id, winMediaUrl: m.url, winMediaKind: m.kind })} />
     </div>
   );
 }

@@ -130,6 +130,9 @@ export async function awardWithReply(
   if (!res) return null;
   const prize = res.winner.prizeId ? await prisma.contestPrize.findUnique({ where: { id: res.winner.prizeId } }) : null;
   const owner = await prisma.user.findUnique({ where: { id: contest.ownerId } });
+  // the picture picked for this contest (only the owner's own uploads)
+  const winMediaId = ((contest.config ?? {}) as Record<string, unknown>).winMediaId;
+  const winMedia = typeof winMediaId === 'string' ? await prisma.mediaFile.findFirst({ where: { id: winMediaId, ownerId: contest.ownerId } }) : null;
   const who = mention({ id: candidate.tgUserId, username: candidate.username, first_name: candidate.firstName });
   await sendTemplate(
     api,
@@ -150,6 +153,7 @@ export async function awardWithReply(
       ...extra,
     },
     { reply_parameters: { message_id: msg.message_id, allow_sending_without_reply: true } },
+    winMedia,
   ).catch(() => undefined);
   await createDeliveriesForDraw(contest.id, res.drawNumber);
   return res;

@@ -63,6 +63,14 @@ async function assertContestAdmin(contestId: string, userTgId: string | number |
   else if (c.chat) await assertTgAdmin(c.bot, c.chat.chatId, userTgId, `чате «${c.chat.title}»`);
 }
 
+/** Guard fields are written only by the server (freeze / resume). */
+const SERVER_CONFIG_KEYS = ['frozen', 'frozenAt', 'frozenReason', 'resumedAt'];
+function clientConfig(cfg: Record<string, unknown> | undefined) {
+  const out = { ...(cfg ?? {}) };
+  for (const k of SERVER_CONFIG_KEYS) delete out[k];
+  return out;
+}
+
 async function resolveTarget(userId: string, userTgId: string | number | bigint, body: z.infer<typeof contestSchema>) {
   const bot = await usableBot(userId, body.botId);
   const chat = body.chatId ? await ownChat(userId, body.chatId) : null;
@@ -138,7 +146,7 @@ export async function contestRoutes(app: FastifyInstance) {
     await validatePrizes(userId, body.prizes);
     if (body.postMediaId) await ownMedia(userId, body.postMediaId);
     if (body.type === 'SMS_COUNTER') throw badRequest('SMS-конкурс создаётся через раздел SMS Counter или командой .sms');
-    const config = { ...body.config, ...(t.publishedMessageId ? { skipPost: true } : {}) };
+    const config = { ...clientConfig(body.config), ...(t.publishedMessageId ? { skipPost: true } : {}) };
     const contest = await prisma.contest.create({
       data: {
         ownerId: userId,
@@ -184,7 +192,7 @@ export async function contestRoutes(app: FastifyInstance) {
         data: {
           title: body.title,
           description: body.description,
-          config: body.config as Prisma.InputJsonValue | undefined,
+          config: body.config ? (clientConfig(body.config) as Prisma.InputJsonValue) : undefined,
           winnersCount: body.winnersCount,
           startsAt: body.startsAt,
           endsAt: body.endsAt,

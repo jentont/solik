@@ -257,7 +257,8 @@ export async function handleChatActivity(api: TelegramApi, bot: TelegramBot, msg
           next = messageCounter - 1 + randomInt(cfg.rangeMin, cfg.rangeMax + 1);
           await redis().set(key, String(next), 'EX', 30 * 24 * 3600);
         }
-        if (messageCounter >= next) {
+        // only one message claims a drop point
+        if (messageCounter >= next && (await redis().set(`${key}:claim:${next}`, '1', 'EX', 30 * 24 * 3600, 'NX'))) {
           await redis().set(key, String(messageCounter + randomInt(cfg.rangeMin, cfg.rangeMax + 1)), 'EX', 30 * 24 * 3600);
           await awardWithReply(api, contest, self, 'every_range', msg, 'INSTANT_WIN', {}, award);
         }

@@ -66,3 +66,35 @@ describe('upload sniffing', () => {
     expect(sniff(Buffer.from('<svg onload=alert(1)>'))).toBeNull();
   });
 });
+
+describe('Login Widget without auth_date', () => {
+  it('is rejected even with a valid signature', () => {
+    const rest: Record<string, string> = { id: '42', first_name: 'Ann' };
+    const dcs = Object.keys(rest).sort().map((k) => `${k}=${rest[k]}`).join('\n');
+    const secret = createHash('sha256').update(TOKEN).digest();
+    const hash = createHmac('sha256', secret).update(dcs).digest('hex');
+    expect(() => validateLoginWidget({ ...rest, hash }, TOKEN)).toThrow();
+  });
+});
+
+describe('who pays for prizes', () => {
+  it('the shared platform bot never buys Premium with platform Stars', async () => {
+    const { fundDelivery } = await import('../src/modules/gifts/delivery.js');
+    const r = await fundDelivery({ id: 'b', isPlatform: true }, 'u', { method: 'PREMIUM_GIFT' });
+    expect(r.method).toBe('MANUAL');
+  });
+  it('an own bot pays from its own balance', async () => {
+    const { fundDelivery } = await import('../src/modules/gifts/delivery.js');
+    expect((await fundDelivery({ id: 'b', isPlatform: false }, 'u', { method: 'PREMIUM_GIFT' })).method).toBe('PREMIUM_GIFT');
+    expect((await fundDelivery({ id: 'b', isPlatform: false }, 'u', { method: 'BOT_SEND_GIFT' })).method).toBe('BOT_SEND_GIFT');
+  });
+});
+
+describe('anti-spam guard window', () => {
+  it('counts wins after the last «continue» only within the window', async () => {
+    const { guardSince } = await import('../src/modules/guard/service.js');
+    const now = Date.parse('2026-11-03T12:00:00Z');
+    expect(guardSince({ guardWindowMin: 10, resumedAt: null }, now).toISOString()).toBe('2026-11-03T11:50:00.000Z');
+    expect(guardSince({ guardWindowMin: 10, resumedAt: '2026-11-03T11:55:00.000Z' }, now).toISOString()).toBe('2026-11-03T11:55:00.000Z');
+  });
+});

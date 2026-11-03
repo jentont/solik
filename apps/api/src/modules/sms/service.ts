@@ -73,8 +73,9 @@ export async function handleSmsCommand(api: TelegramApi, bot: TelegramBot, msg: 
       if (thread === null && chat?.linkedChannelChatId && msg.chat.type === 'supergroup') {
         // Group of a channel without a thread: counts group messages, which is allowed; make it explicit.
       }
-      const settings = (bot.settings ?? {}) as { smsPrizeQueue?: { position: number; title: string; giftId?: string }[] };
-      const defaultGift = bot.defaultPrizeId ? await prisma.telegramGift.findUnique({ where: { id: bot.defaultPrizeId } }) : null;
+      // prize presets belong to a white-label bot's owner; the shared bot has none for random chats
+      const settings = (bot.isPlatform ? {} : (bot.settings ?? {})) as { smsPrizeQueue?: { position: number; title: string; giftId?: string }[] };
+      const defaultGift = !bot.isPlatform && bot.defaultPrizeId ? await prisma.telegramGift.findUnique({ where: { id: bot.defaultPrizeId } }) : null;
       const prizes = settings.smsPrizeQueue?.length
         ? settings.smsPrizeQueue.map((p) => ({ kind: p.giftId ? ('GIFT' as const) : ('CUSTOM' as const), title: p.title, giftId: p.giftId, position: p.position }))
         : defaultGift

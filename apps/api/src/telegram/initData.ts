@@ -49,7 +49,8 @@ export function validateLoginWidget(data: Record<string, string | number>, botTo
   const secret = createHash('sha256').update(botToken).digest();
   const expected = createHmac('sha256', secret).update(dataCheckString).digest('hex');
   if (!safeEqual(expected, String(hash))) throw new Error('invalid signature');
-  if (Date.now() / 1000 - Number(rest.auth_date) > maxAgeSec) throw new Error('auth expired');
+  const authDate = Number(rest.auth_date);
+  if (!authDate || Date.now() / 1000 - authDate > maxAgeSec) throw new Error('auth expired');
   return {
     id: Number(rest.id),
     first_name: String(rest.first_name ?? ''),

@@ -54,7 +54,10 @@ export async function fundDelivery(
   ownerId: string | null,
   chosen: { method: DeliveryMethod; note?: string },
 ): Promise<{ method: DeliveryMethod; note?: string; businessConnectionId?: string }> {
-  if (chosen.method !== 'BOT_SEND_GIFT' || !bot.isPlatform) return chosen;
+  if (!bot.isPlatform) return chosen;
+  // Premium is bought with the bot's own Stars — on the shared bot that would be the platform's money
+  if (chosen.method === 'PREMIUM_GIFT') return { method: 'MANUAL', note: 'Premium через общего бота SOLIK выдаётся вручную. Через своего бота — автоматически.' };
+  if (chosen.method !== 'BOT_SEND_GIFT') return chosen;
   const conn = ownerId
     ? await prisma.telegramBusinessConnection.findFirst({ where: { botId: bot.id, ownerId, isEnabled: true, canTransferStars: true }, orderBy: { updatedAt: 'desc' } })
     : null;

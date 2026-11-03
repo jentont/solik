@@ -13,6 +13,7 @@ import { joinContest } from '../modules/contests/lifecycle.js';
 import { handleDice } from '../modules/dice/service.js';
 import { confirmSmsReset, handleSmsCommand, handleSmsMessage } from '../modules/sms/service.js';
 import { handleSubscriptionPayment, handleSubscriptionPreCheckout } from '../modules/subscriptions/service.js';
+import { handleGuardCallback } from '../modules/guard/service.js';
 import { notifyStatusText, rememberChatMember, setNotify } from '../modules/notify/service.js';
 import { handleMainCallback, handleMainPrivate } from './mainMenu.js';
 
@@ -132,6 +133,7 @@ async function handleCallback(api: TelegramApi, bot: TelegramBot, q: TgCallbackQ
     const text = await confirmSmsReset(api, data.slice(9), q.message, q.from.id);
     return api.answerCallbackQuery(q.id, text);
   }
+  if (data.startsWith('guard:')) return handleGuardCallback(api, data, q.from.id, (t, alert) => api.answerCallbackQuery(q.id, t, alert));
   if (data === 'notify:off') {
     await setNotify(api, bot, q.from.id, false);
     return api.answerCallbackQuery(q.id, notifyStatusText(false), true);

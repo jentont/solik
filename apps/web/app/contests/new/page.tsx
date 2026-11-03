@@ -537,6 +537,7 @@ function ConditionsStep({ type, config, setConfig, prizes, setPrizes, chatId }: 
           </div>
 
           <DropTable config={config} set={set} prizes={prizes} setPrizes={setPrizes} />
+          <Guard config={config} set={set} />
           {!config.paidOnly && <AntiSpam config={config} set={set} />}
         </>
       )}
@@ -554,6 +555,7 @@ function ConditionsStep({ type, config, setConfig, prizes, setPrizes, chatId }: 
       )}
       {type === 'DICE_777' && (
         <>
+          <Guard config={config} set={set} />
           <p className="rounded-xl bg-elevated/60 p-3 text-[15px]">
             Участники отправляют слот-машину. Три семёрки — победа. Результат генерирует Telegram, а пересланные кубики не засчитываются.
           </p>
@@ -838,6 +840,24 @@ function WinMedia({ config, setConfig }: { config: Record<string, any>; setConfi
         </div>
       </div>
       <MediaPicker open={open} onClose={() => setOpen(false)} onPick={(m) => setConfig({ ...config, winMediaId: m.id, winMediaUrl: m.url, winMediaKind: m.kind })} />
+    </div>
+  );
+}
+
+/** Safety: freeze on a burst of wins and keep a Stars floor on the paying balance. */
+function Guard({ config, set }: { config: Record<string, any>; set(k: string, v: unknown): void }) {
+  const num = (k: string, label: string, def: number, hint?: string) => (
+    <Input label={label} type="number" min={0} value={config[k] ?? def} onChange={(e) => set(k, Math.max(0, Number(e.target.value)))} hint={hint} />
+  );
+  return (
+    <div className="space-y-3 rounded-2xl border border-ok/25 bg-ok/[0.05] p-4">
+      <div className="font-display text-[16px] font-extrabold">Защита</div>
+      <div className="grid grid-cols-2 gap-3">
+        {num('guardMaxWins', 'Заморозить, если подарков больше', 10, '0 — выключено')}
+        {num('guardWindowMin', 'за минут', 10)}
+      </div>
+      <p className="-mt-1 text-[14px] leading-snug text-muted">При всплеске выигрышей (баг, спам, рейд) конкурс замрёт, а бот спросит вас в личке: «Всё нормально, продолжить?»</p>
+      {num('starsReserve', 'Неснижаемый остаток Stars на балансе', 0, 'Подарки перестанут падать, если после выдачи на балансе останется меньше. 0 — выключено')}
     </div>
   );
 }

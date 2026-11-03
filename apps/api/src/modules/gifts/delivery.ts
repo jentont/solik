@@ -89,7 +89,8 @@ export async function createDeliveriesForDraw(contestId: string, drawNumber: num
       },
       update: {},
     });
-    if (d.status === 'PENDING') await enqueueDelivery(d.id);
+    // a frozen contest keeps new deliveries PENDING until the owner says «continue»
+    if (d.status === 'PENDING' && !(contest.config as Record<string, unknown>)?.frozen) await enqueueDelivery(d.id);
     else if (d.status === 'MANUAL_REQUIRED') await notifyOwnerManual(d.id);
   }
 }
@@ -106,6 +107,7 @@ export async function processDelivery(deliveryId: string): Promise<GiftDelivery>
     include: { prize: { include: { gift: true, nftAsset: true } }, bot: true, contest: true },
   });
   if (d.status === 'DELIVERED' || d.status === 'MANUAL_REQUIRED') return d;
+  if (d.status === 'PENDING' && (d.contest?.config as Record<string, unknown> | undefined)?.frozen) return d; // held by the guard
 
   // Crash-safety: if a previous attempt reached PROCESSING we cannot know whether Telegram
   // executed the call. Never resend blindly — ask the owner to verify.

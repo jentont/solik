@@ -3,6 +3,7 @@ import type { Contest, TelegramBot, TemplateKey } from '@prisma/client';
 import { sha256 } from '../../lib/crypto.js';
 import { prisma } from '../../lib/prisma.js';
 import { redis } from '../../lib/redis.js';
+import { guardAllows } from '../guard/service.js';
 import { securePick } from '../../lib/rng.js';
 import type { TelegramApi } from '../../telegram/client.js';
 import { sendTemplate } from '../../telegram/messenger.js';
@@ -126,6 +127,8 @@ export async function awardWithReply(
   extra: TemplateVars = {},
   opts: InstantOptions = {},
 ) {
+  // frozen by the anti-spam guard, or the balance would cross the reserve
+  if (!(await guardAllows(contest))) return null;
   const res = await awardInstantWinner(contest.id, candidate, reason, opts);
   if (!res) return null;
   const prize = res.winner.prizeId ? await prisma.contestPrize.findUnique({ where: { id: res.winner.prizeId } }) : null;

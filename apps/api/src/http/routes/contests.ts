@@ -227,6 +227,13 @@ export async function contestRoutes(app: FastifyInstance) {
     return startContest(req.params.id, uid(req), { force: now });
   });
 
+  /** «Продолжить» after the anti-spam guard froze the contest (same as the button in the bot). */
+  app.post<{ Params: { id: string } }>('/api/contests/:id/resume', async (req) => {
+    await ownContest(uid(req), req.params.id);
+    const { resumeContest } = await import('../../modules/guard/service.js');
+    return { released: await resumeContest(req.params.id) };
+  });
+
   app.post<{ Params: { id: string } }>('/api/contests/:id/stop', async (req) => {
     await ownContest(uid(req), req.params.id);
     await cancelContest(req.params.id, uid(req));

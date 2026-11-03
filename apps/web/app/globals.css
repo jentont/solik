@@ -203,3 +203,16 @@ body::before {
 .float-y { animation: float-y 3.6s ease-in-out infinite; }
 .no-select { -webkit-user-select: none; user-select: none; }
 .tg-msg .tg-pack { color: #ffc23d; font-size: 0.9em; }
+
+/* native <select> popups follow the dark theme (otherwise white list with light text) */
+select {
+  color-scheme: dark;
+}
+select option,
+select optgroup {
+  background-color: #1d1d22;
+  color: #f7f7f9;
+}
+select option:checked {
+  background-color: #3a3a44;
+}

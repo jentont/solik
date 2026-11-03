@@ -65,6 +65,18 @@ export async function fundDelivery(
   return { method: 'MANUAL', note: BUSINESS_HELP };
 }
 
+/**
+ * How prizes leave the account, chosen per contest:
+ * manual  — default: the owner hands prizes out; the bot reminds and offers a one-tap «send»;
+ * confirm — «security mode»: the bot asks the owner in a DM before every send;
+ * auto    — sent right away (own bot balance / connected Business account).
+ */
+export type DeliveryMode = 'manual' | 'confirm' | 'auto';
+export function deliveryMode(c: { config: unknown } | null | undefined): DeliveryMode {
+  const v = ((c?.config ?? {}) as Record<string, unknown>).deliveryMode;
+  return v === 'auto' || v === 'confirm' ? v : 'manual';
+}
+
 export async function createDeliveriesForDraw(contestId: string, drawNumber: number) {
   const contest = await prisma.contest.findUniqueOrThrow({ where: { id: contestId }, include: { bot: true } });
   const winners = await prisma.contestWinner.findMany({
@@ -73,7 +85,12 @@ export async function createDeliveriesForDraw(contestId: string, drawNumber: num
   });
   for (const w of winners) {
     const prize = w.prize!;
-    const { method, note, businessConnectionId } = await fundDelivery(contest.bot, contest.ownerId, chooseMethod(prize));
+    const funded = await fundDelivery(contest.bot, contest.ownerId, chooseMethod(prize));
+    const { method, businessConnectionId } = funded;
+    const mode = deliveryMode(contest);
+    // a prize the bot could send, but the owner chose to hand out (or approve) themselves
+    const held = method !== 'MANUAL' && mode !== 'auto';
+    const note = held ? (mode === 'confirm' ? 'Ждёт вашего подтверждения' : 'Ручная выдача (выбрано в настройках конкурса)') : funded.note;
     const d = await prisma.giftDelivery.upsert({
       where: { idempotencyKey: `winner:${w.id}` },
       create: {
@@ -87,13 +104,14 @@ export async function createDeliveriesForDraw(contestId: string, drawNumber: num
         recipientName: w.username ? `@${w.username}` : w.firstName,
         method,
         businessConnectionId,
-        status: method === 'MANUAL' ? 'MANUAL_REQUIRED' : 'PENDING',
+        status: method === 'MANUAL' || (held && mode === 'manual') ? 'MANUAL_REQUIRED' : 'PENDING',
         note,
       },
       update: {},
     });
+    if (d.status === 'PENDING' && held) await askOwnerToSend(d.id);
     // a frozen contest keeps new deliveries PENDING until the owner says «continue»
-    if (d.status === 'PENDING' && !(contest.config as Record<string, unknown>)?.frozen) await enqueueDelivery(d.id);
+    else if (d.status === 'PENDING' && !(contest.config as Record<string, unknown>)?.frozen) await enqueueDelivery(d.id);
     else if (d.status === 'MANUAL_REQUIRED') await notifyOwnerManual(d.id);
   }
 }
@@ -111,6 +129,7 @@ export async function processDelivery(deliveryId: string): Promise<GiftDelivery>
   });
   if (d.status === 'DELIVERED' || d.status === 'MANUAL_REQUIRED') return d;
   if (d.status === 'PENDING' && (d.contest?.config as Record<string, unknown> | undefined)?.frozen) return d; // held by the guard
+  if (d.status === 'PENDING' && d.note === 'Ждёт вашего подтверждения') return d; // security mode: only after «Отправить»
 
   // Crash-safety: if a previous attempt reached PROCESSING we cannot know whether Telegram
   // executed the call. Never resend blindly — ask the owner to verify.
@@ -224,10 +243,12 @@ export async function processDelivery(deliveryId: string): Promise<GiftDelivery>
 export async function notifyOwnerManual(deliveryId: string, error?: string) {
   const d = await prisma.giftDelivery.findUnique({
     where: { id: deliveryId },
-    include: { bot: { include: { owner: true } }, prize: true, contest: true },
+    include: { bot: { include: { owner: true } }, prize: true, contest: { include: { owner: true } } },
   });
-  const owner = d?.bot.owner;
+  // the contest's organizer; the shared bot itself has no owner
+  const owner = d?.contest?.owner ?? d?.bot.owner;
   if (!d || !owner) return;
+  const canSend = d.method !== 'MANUAL';
   const lines = [
     '<b>Требуется ручная выдача приза</b>',
     d.contest ? `Конкурс: ${escapeHtml(d.contest.title)}` : '',
@@ -236,9 +257,60 @@ export async function notifyOwnerManual(deliveryId: string, error?: string) {
     d.note ? `Причина: ${escapeHtml(d.note)}` : '',
     error ? `Ошибка: ${escapeHtml(error)}` : '',
     '',
-    'Отправьте приз вручную и отметьте выдачу в панели: Telegram Gifts → История выдачи.',
+    canSend ? 'Бот может отправить его сам — нажмите кнопку. Или выдайте вручную и отметьте в панели: Подарки → Выдача.' : 'Отправьте приз вручную и отметьте выдачу в панели: Подарки → Выдача.',
   ].filter(Boolean);
-  await mainApi.sendMessage(owner.telegramId, lines.join('\n')).catch(() => undefined);
+  await mainApi
+    .sendMessage(owner.telegramId, lines.join('\n'), canSend ? { reply_markup: { inline_keyboard: [[{ text: 'Отправить через бота', callback_data: `dlv:ok:${d.id}` }]] } } : {})
+    .catch(() => undefined);
+}
+
+/** Security mode: «Отправить Мишку @winner?» with Yes / No, before anything leaves the account. */
+export async function askOwnerToSend(deliveryId: string) {
+  const d = await prisma.giftDelivery.findUnique({ where: { id: deliveryId }, include: { prize: true, contest: { include: { owner: true } }, bot: { include: { owner: true } } } });
+  const owner = d?.contest?.owner ?? d?.bot.owner;
+  if (!d || !owner) return;
+  const html = [
+    '<b>Подтвердите выдачу приза</b>',
+    d.contest ? `Конкурс: ${escapeHtml(d.contest.title)}` : '',
+    `Приз: <b>${escapeHtml(d.prize?.title ?? '—')}</b>`,
+    `Победитель: ${escapeHtml(d.recipientName ?? '')} (ID <code>${d.recipientTgId}</code>)`,
+    '',
+    'Отправить?',
+  ].filter((l, i, a) => l || a[i - 1]).join('\n');
+  await mainApi
+    .sendMessage(owner.telegramId, html, {
+      reply_markup: { inline_keyboard: [[{ text: 'Отправить', callback_data: `dlv:ok:${d.id}` }, { text: 'Не отправлять', callback_data: `dlv:no:${d.id}` }]] },
+    })
+    .catch(() => undefined);
+}
+
+/** «Отправить» from the DM or the panel: the owner releases a held delivery. */
+export async function releaseDelivery(deliveryId: string) {
+  const d = await prisma.giftDelivery.findUniqueOrThrow({ where: { id: deliveryId } });
+  if (d.method === 'MANUAL') throw new Error('Этот приз бот отправить не может — только вручную');
+  if (d.status === 'DELIVERED' || d.status === 'PROCESSING') return d;
+  const r = await prisma.giftDelivery.update({ where: { id: d.id }, data: { status: 'PENDING', note: 'Отправка подтверждена', error: null } });
+  await enqueueDelivery(d.id);
+  return r;
+}
+
+/** Callback buttons dlv:ok:<id> / dlv:no:<id>. Only the contest organizer (or the bot owner) may answer. */
+export async function handleDeliveryCallback(data: string, fromTgId: number, answer: (text: string) => Promise<unknown>) {
+  const [, action, id] = data.split(':');
+  const d = id ? await prisma.giftDelivery.findUnique({ where: { id }, include: { contest: { include: { owner: true } }, bot: { include: { owner: true } } } }) : null;
+  const owner = d?.contest?.owner ?? d?.bot.owner;
+  if (!d || !owner || String(owner.telegramId) !== String(fromTgId)) return answer('Это решение принимает организатор конкурса');
+  if (d.status === 'DELIVERED') return answer('Уже выдано');
+  if (action === 'ok') {
+    try {
+      await releaseDelivery(d.id);
+      return answer('Отправляю');
+    } catch (e) {
+      return answer((e as Error).message);
+    }
+  }
+  await prisma.giftDelivery.update({ where: { id: d.id }, data: { status: 'MANUAL_REQUIRED', note: 'Вы отказались от автоматической отправки' } });
+  return answer('Хорошо, не отправляю. Выдача — в разделе «Подарки → Выдача»');
 }
 
 export async function markDeliveredManually(deliveryId: string, userId: string) {

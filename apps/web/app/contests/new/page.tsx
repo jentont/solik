@@ -422,6 +422,22 @@ function ConditionsStep({ type, config, setConfig, prizes, setPrizes, chatId }: 
     <Card className="max-w-2xl space-y-4">
       <WinFrom chatId={chatId} value={config.winFrom ?? ''} onChange={(v) => set('winFrom', v)} />
       <WinMedia config={config} setConfig={setConfig} />
+      <Select
+        label="Выдача призов"
+        value={config.deliveryMode ?? 'manual'}
+        onChange={(e) => set('deliveryMode', e.target.value)}
+        hint={
+          (config.deliveryMode ?? 'manual') === 'manual'
+            ? 'Вы выдаёте сами. Бот напомнит и предложит отправить в одно касание.'
+            : config.deliveryMode === 'confirm'
+              ? 'Перед каждой отправкой бот спросит вас в личке: «Отправить?»'
+              : 'Сразу после выигрыша — со Stars вашего бота или подключённого бизнес-аккаунта.'
+        }
+      >
+        <option value="manual">Вручную</option>
+        <option value="confirm">Бот, но с моим подтверждением</option>
+        <option value="auto">Бот сразу, автоматически</option>
+      </Select>
       {['RANDOM', 'GIFTS', 'NFT'].includes(type) && (
         <>
           <Input label="Текст кнопки участия" value={config.joinButtonText ?? 'Участвовать'} onChange={(e) => set('joinButtonText', e.target.value)} />

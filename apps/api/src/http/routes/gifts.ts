@@ -6,7 +6,7 @@ import { badRequest, conflict, notFound } from '../../lib/errors.js';
 import { prisma } from '../../lib/prisma.js';
 import { mainApi } from '../../telegram/registry.js';
 import { refreshBusinessConnection, syncOwnedGifts, disconnectBusiness } from '../../modules/business/service.js';
-import { BUSINESS_HELP, chooseMethod, enqueueDelivery, fundDelivery, markDeliveredManually, notifyOwnerManual } from '../../modules/gifts/delivery.js';
+import { BUSINESS_HELP, chooseMethod, enqueueDelivery, fundDelivery, markDeliveredManually, notifyOwnerManual, releaseDelivery } from '../../modules/gifts/delivery.js';
 import { nftProviders } from '../../modules/nft/providers.js';
 import { requireAuth, uid } from '../auth.js';
 import { usableBot } from '../ownership.js';
@@ -72,6 +72,18 @@ export async function giftRoutes(app: FastifyInstance) {
       await enqueueDelivery(d.id);
       await audit('delivery.retry', { actorId: uid(req), entity: 'GiftDelivery', entityId: d.id });
       return { ok: true };
+    });
+
+    /** One-tap «send via bot» for a prize held for manual delivery / approval. */
+    r.post<{ Params: { id: string } }>('/api/gifts/deliveries/:id/send', async (req) => {
+      const d = await ownDelivery(uid(req), req.params.id);
+      try {
+        const r = await releaseDelivery(d.id);
+        await audit('delivery.released', { actorId: uid(req), entity: 'GiftDelivery', entityId: d.id });
+        return r;
+      } catch (e) {
+        throw badRequest((e as Error).message);
+      }
     });
 
     r.post<{ Params: { id: string } }>('/api/gifts/deliveries/:id/confirm', async (req) => {

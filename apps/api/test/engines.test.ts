@@ -237,3 +237,13 @@ describe('quick giveaway command', () => {
     expect(parseQuickCommand('привет .розыгрыш')).toBeNull();
   });
 });
+
+describe('delivery mode', () => {
+  it('is manual unless the owner picks the bot', async () => {
+    const { deliveryMode } = await import('../src/modules/gifts/delivery.js');
+    expect(deliveryMode({ config: {} })).toBe('manual');
+    expect(deliveryMode({ config: { deliveryMode: 'confirm' } })).toBe('confirm');
+    expect(deliveryMode({ config: { deliveryMode: 'auto' } })).toBe('auto');
+    expect(deliveryMode({ config: { deliveryMode: 'whatever' } })).toBe('manual');
+  });
+});

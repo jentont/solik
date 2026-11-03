@@ -186,6 +186,11 @@ function Deliveries() {
                     Повторить
                   </Button>
                 )}
+                {d.method !== 'MANUAL' && (d.status === 'MANUAL_REQUIRED' || (d.status === 'PENDING' && d.note === 'Ждёт вашего подтверждения')) && (
+                  <Button size="sm" variant="gold" onClick={() => act(`/api/gifts/deliveries/${d.id}/send`, 'Отправляю')}>
+                    Отправить ботом
+                  </Button>
+                )}
                 {d.status !== 'DELIVERED' && (
                   <Button size="sm" variant="ghost" onClick={() => act(`/api/gifts/deliveries/${d.id}/confirm`, 'Отмечено')}>
                     Выдано

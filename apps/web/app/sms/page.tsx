@@ -156,7 +156,7 @@ export default function SmsPage() {
 
 function StartModal({ open, onClose, onStarted }: { open: boolean; onClose(): void; onStarted(): void }) {
   const bots = useApi<any[]>(open ? '/api/bots' : null, [open]);
-  const gifts = useApi<any[]>(open ? '/api/gifts/catalog' : null, [open]);
+  const gifts = useApi<any[]>(open ? '/api/gifts/catalog?type=REGULAR,LIMITED' : null, [open]);
   const [botId, setBotId] = useState('');
   const [chatId, setChatId] = useState('');
   const [postId, setPostId] = useState('');

@@ -21,7 +21,7 @@ export function chooseMethod(prize: ContestPrize & { gift: TelegramGift | null }
       if (g.type === 'COLLECTIBLE' || g.type === 'NFT')
         return { method: 'MANUAL', note: 'Коллекционный подарок передаётся только из аккаунта владельца (Telegram Business) или вручную' };
       if (g.availability === 'REMOVED' || g.availability === 'SOLD_OUT' || g.type === 'REMOVED')
-        return { method: 'MANUAL', note: 'Подарок больше недоступен для покупки ботом — нужна ручная выдача' };
+        return { method: 'MANUAL', note: 'Подарок снят с продажи: Telegram его больше не продаёт, а обычный подарок нельзя передать. Замените приз.' };
       if (!g.transferable) return { method: 'MANUAL', note: 'Отправка этого подарка ботом не подтверждена getAvailableGifts' };
       return { method: 'BOT_SEND_GIFT' };
     }

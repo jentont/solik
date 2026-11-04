@@ -324,7 +324,7 @@ function ChatsTab({ chats, channels, reload, confirm }: { chats: any[]; channels
 }
 
 function SmsPrizes({ bot, onSaved }: { bot: any; onSaved(): void }) {
-  const gifts = useApi<any[]>('/api/gifts/catalog');
+  const gifts = useApi<any[]>('/api/gifts/catalog?type=REGULAR,LIMITED');
   const [defaultPrizeId, setDefault] = useState<string>(bot.defaultPrizeId ?? '');
   const [queue, setQueue] = useState<{ position: number; title: string; giftId?: string }[]>(bot.settings?.smsPrizeQueue ?? []);
   const save = async () => {

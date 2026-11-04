@@ -96,7 +96,7 @@ export default function DashboardPage() {
             <div className="mt-2 text-[16px] leading-snug text-white/85">6 режимов, приз — настоящий подарок Telegram</div>
           </div>
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/gifts/5956217000635139069.webp" alt="" className="float-y h-[92px] w-[92px] shrink-0 drop-shadow-[0_10px_18px_rgba(0,0,0,0.35)]" />
+          <img src="/gifts/5170233102089322756.webp" alt="" className="float-y h-[92px] w-[92px] shrink-0 drop-shadow-[0_10px_18px_rgba(0,0,0,0.35)]" />
           <span className="absolute bottom-4 right-4 flex h-11 w-11 items-center justify-center rounded-full bg-white text-[#e63946] shadow-lg">
             <ArrowRight className="h-5 w-5" strokeWidth={2.6} />
           </span>

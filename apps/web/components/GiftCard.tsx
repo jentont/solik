@@ -28,7 +28,7 @@ const TYPE_TAG: Partial<Record<Gift['type'], { label: string; cls: string }>> = 
   LIMITED: { label: 'Лимитированный', cls: 'bg-gold text-[#2a1a00]' },
   COLLECTIBLE: { label: 'Коллекционный', cls: 'bg-sky/15 text-sky' },
   NFT: { label: 'NFT', cls: 'bg-sky/15 text-sky' },
-  REMOVED: { label: 'Снят с продажи', cls: 'bg-[#e63946] text-white shadow-[0_4px_12px_rgba(230,57,70,0.45)]' },
+  REMOVED: { label: 'Нельзя подарить', cls: 'bg-[#e63946] text-white shadow-[0_4px_12px_rgba(230,57,70,0.45)]' },
 };
 
 export function GiftImage({ gift, size = 64, className }: { gift: Pick<Gift, 'id' | 'imageUrl' | 'emoji' | 'name' | 'stickerFileId' | 'type'>; size?: number; className?: string }) {

@@ -298,7 +298,7 @@ function TargetStep({ bot, type, target, setTarget, postId, setPostId }: any) {
 }
 
 function PrizeStep({ prizes, setPrizes, winnersCount, setWinners, type }: any) {
-  const gifts = useApi<Gift[]>('/api/gifts/catalog');
+  const gifts = useApi<Gift[]>('/api/gifts/catalog?type=REGULAR,LIMITED');
   const nft = useApi<any>('/api/nft');
   const biz = useApi<any[]>('/api/business');
   const [q, setQ] = useState('');

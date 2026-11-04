@@ -83,8 +83,9 @@ export async function launchQuick(p: {
   const gift = p.allowPaidGift
     ? p.giftId
       ? await prisma.telegramGift.findUnique({ where: { id: p.giftId } })
-      : await prisma.telegramGift.findFirst({ where: { name: { equals: p.prize, mode: 'insensitive' } } })
+      : await prisma.telegramGift.findFirst({ where: { name: { equals: p.prize, mode: 'insensitive' }, type: { not: 'REMOVED' } } })
     : null;
+  if (gift && gift.type === 'REMOVED') throw new Error(`«${gift.name}» снят с продажи — его нельзя подарить`);
   const prizeTitle = gift?.name ?? p.prize;
   const endsAt = new Date(Date.now() + p.durationSec * 1000);
   const contest = await prisma.contest.create({

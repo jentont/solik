@@ -48,7 +48,13 @@ const contestSchema = z.object({
 async function validatePrizes(userId: string, prizes: z.infer<typeof prizeSchema>[]) {
   for (const p of prizes) {
     if (p.kind === 'GIFT' && !p.giftId && !p.businessOwnedGiftId) throw badRequest(`Выберите подарок для приза «${p.title}»`);
-    if (p.giftId && !(await prisma.telegramGift.findUnique({ where: { id: p.giftId } }))) throw badRequest('Подарок не найден в каталоге');
+    if (p.giftId) {
+      const g = await prisma.telegramGift.findUnique({ where: { id: p.giftId } });
+      if (!g) throw badRequest('Подарок не найден в каталоге');
+      // Telegram no longer sells removed gifts, and a plain gift can't be passed on: nobody could deliver it
+      if (g.type === 'REMOVED' || g.availability === 'REMOVED' || g.availability === 'SOLD_OUT')
+        throw badRequest(`«${g.name}» снят с продажи — его нельзя подарить. Выберите подарок в продаже или коллекционный из своего аккаунта.`);
+    }
     if (p.nftAssetId && !(await prisma.nFTAsset.findFirst({ where: { id: p.nftAssetId, ownerId: userId } }))) throw badRequest('NFT не найден');
     if (p.businessOwnedGiftId && !(await prisma.businessOwnedGift.findFirst({ where: { id: p.businessOwnedGiftId, connection: { ownerId: userId } } })))
       throw badRequest('Подарок Business-аккаунта не найден');

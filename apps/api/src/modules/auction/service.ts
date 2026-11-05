@@ -265,7 +265,7 @@ export async function handleAuctionTimer(job: { contestId: string; version: numb
     await sendTemplate(api, ctx, c.targetChatTgId, 'AUCTION_COUNTDOWN', { remaining_time: job.secondsLeft, leader, contest_name: c.title });
     return;
   }
-  const text = `<b>${job.secondsLeft}</b>\nСтавка: ${c.currentBid ?? 0} Stars — ${leader}`;
+  const text = `<b>${job.secondsLeft}</b>\nЛидер: ${leader}`;
   const key = `auction:countdown:${c.id}:${c.timerVersion}`;
   const existing = await redis().get(key);
   if (existing) {

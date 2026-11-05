@@ -14,7 +14,7 @@ export const DEFAULT_TEMPLATES: Record<TemplateKey, string> = {
   SMS_REGISTERED: 'Участник #{position} зарегистрирован.\nОсталось мест: {remaining_slots}.',
   SMS_FILLED: '[[e:🏆]] <b>Набор участников завершен!</b>\n\nВсего участников: {participants_count}.\nМожно определять победителей!',
   RESULTS: '[[e:🏆]] <b>Результаты «{contest_name}»</b>\n\nУчастников: {participants_count}\nПобедители:\n{winners}',
-  AUCTION_BID: '[[e:🔥]] <b>Перебито!</b>\n\n[[e:👑]] Новый лидер: {leader}\n[[e:⭐]] Ставка: {current_bid} Stars\n[[e:⏳]] До конца: {remaining_time}',
+  AUCTION_BID: '[[e:🔥]] <b>Перебито!</b>\n\n[[e:👑]] Новый лидер: {leader}\n[[e:⏳]] До конца: {remaining_time}',
   AUCTION_FINISHED: '[[e:🏆]] <b>Ивент завершён!</b>\n\nПобедитель: {winner_username}\nПриз: <b>{prize_name}</b>',
   AUCTION_WARNING: '[[e:⏳]] <b>Внимание!</b>\n\nДо окончания аукциона осталось {remaining_time}!\nТекущий лидер: {leader}\nУспейте перебить!',
   AUCTION_COUNTDOWN: '[[e:⏳]] Ивент завершается! Отсчёт: {remaining_time}...',

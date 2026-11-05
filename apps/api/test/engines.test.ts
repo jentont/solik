@@ -247,3 +247,16 @@ describe('delivery mode', () => {
     expect(deliveryMode({ config: { deliveryMode: 'whatever' } })).toBe('manual');
   });
 });
+
+describe('auction timer command', () => {
+  it('parses durations and rejects out-of-range ones', async () => {
+    const { parseTimerCommand } = await import('../src/modules/auction/timerCommand.js');
+    expect(parseTimerCommand('.таймер 2м')).toBe(120);
+    expect(parseTimerCommand('/timer@solikgiftbot 90')).toBe(90);
+    expect(parseTimerCommand('.таймер 1.5м')).toBe(90);
+    expect(parseTimerCommand('.таймер')).toBe('show');
+    expect(parseTimerCommand('.таймер 5с')).toBe('invalid');
+    expect(parseTimerCommand('.таймер завтра')).toBe('invalid');
+    expect(parseTimerCommand('какой таймер')).toBeNull();
+  });
+});

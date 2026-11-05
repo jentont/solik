@@ -146,6 +146,24 @@ export default function ContestPage() {
               <div className="font-display text-3xl font-bold">{c.bidsCount}</div>
             </div>
           </div>
+          <div className="mt-5 border-t border-white/10 pt-4">
+            <div className="mb-2 text-[14px] text-muted">Таймер после каждой ставки · в чате: <code>.таймер 2м</code></div>
+            <div className="flex flex-wrap gap-2">
+              {[60, 120, 180, 300].map((s) => {
+                const on = Number(c.config?.extendSeconds ?? 180) === s;
+                return (
+                  <button
+                    key={s}
+                    disabled={busy === 'timer'}
+                    onClick={() => run('timer', () => api(`/api/contests/${id}/timer`, { body: { seconds: s } }), `Таймер: ${s / 60} мин`)}
+                    className={`press min-h-[44px] rounded-full border px-4 text-[15px] font-semibold ${on ? 'border-transparent bg-white text-[#141416]' : 'border-white/[0.13] bg-white/[0.06] text-muted'}`}
+                  >
+                    {s / 60} мин
+                  </button>
+                );
+              })}
+            </div>
+          </div>
         </Card>
       )}
 

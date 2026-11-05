@@ -16,6 +16,7 @@ import { handleSubscriptionPayment, handleSubscriptionPreCheckout } from '../mod
 import { handleDeliveryCallback } from '../modules/gifts/delivery.js';
 import { handleGuardCallback } from '../modules/guard/service.js';
 import { handleQuickCommand } from '../modules/quick/service.js';
+import { handleTimerCallback, handleTimerCommand, handleTimerPrivate } from '../modules/auction/timerCommand.js';
 import { notifyStatusText, rememberChatMember, setNotify } from '../modules/notify/service.js';
 import { handleMainCallback, handleMainPrivate } from './mainMenu.js';
 
@@ -58,6 +59,7 @@ export async function dispatchUpdate(bot: TelegramBot, u: TgUpdate) {
     // «Перебить ставку» deep link (t.me/<bot>?start=bid_<contestId>) works on every bot, the platform one included
     const bid = (msg.text ?? '').trim().match(/^\/start bid_(\w+)$/);
     if (bid && msg.from) return sendBidInvoice(api, msg.chat.id, bid[1]!, msg.from);
+    if (await handleTimerPrivate(api, bot, msg)) return;
     if (/^\/notify(@\w+)?$/.test((msg.text ?? '').trim()) && msg.from) {
       const on = await setNotify(api, bot, msg.from.id, 'toggle');
       return api.sendMessage(msg.chat.id, notifyStatusText(on));
@@ -71,6 +73,7 @@ export async function dispatchUpdate(bot: TelegramBot, u: TgUpdate) {
   await rememberChatMember(bot, msg).catch(() => undefined);
   if (msg.is_automatic_forward) return handleAutomaticForward(bot, msg);
   if (bot.status !== 'ACTIVE') return; // suspended/expired bots only keep tracking, no contest activity
+  if (await handleTimerCommand(api, bot, msg)) return;
   if (await handleQuickCommand(api, bot, msg)) return;
   if (await handleSmsCommand(api, bot, msg)) return;
   if (msg.dice && (await handleDice(api, bot, msg))) return;
@@ -136,6 +139,7 @@ async function handleCallback(api: TelegramApi, bot: TelegramBot, q: TgCallbackQ
     const text = await confirmSmsReset(api, data.slice(9), q.message, q.from.id);
     return api.answerCallbackQuery(q.id, text);
   }
+  if (data.startsWith('atimer:')) return handleTimerCallback(data, q.from.id, (t) => api.answerCallbackQuery(q.id, t, true));
   if (data.startsWith('dlv:')) return handleDeliveryCallback(data, q.from.id, (t) => api.answerCallbackQuery(q.id, t, true));
   if (data.startsWith('guard:')) return handleGuardCallback(api, data, q.from.id, (t, alert) => api.answerCallbackQuery(q.id, t, alert));
   if (data === 'notify:off') {

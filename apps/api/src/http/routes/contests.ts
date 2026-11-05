@@ -281,6 +281,19 @@ export async function contestRoutes(app: FastifyInstance) {
     return { released: await resumeContest(req.params.id) };
   });
 
+  /** Change the after-bid timer of a running «Перебивка» (the running countdown is cut down too). */
+  app.post<{ Params: { id: string } }>('/api/contests/:id/timer', async (req) => {
+    const own = await ownContest(uid(req), req.params.id);
+    await assertContestAdmin(own.id, req.user!.telegramId);
+    const { seconds } = parse(z.object({ seconds: z.number().int().min(15).max(3600) }), req.body);
+    const { setAuctionTimer } = await import('../../modules/auction/timerCommand.js');
+    try {
+      return await setAuctionTimer(own.id, seconds);
+    } catch (e) {
+      throw badRequest((e as Error).message);
+    }
+  });
+
   app.post<{ Params: { id: string } }>('/api/contests/:id/stop', async (req) => {
     await ownContest(uid(req), req.params.id);
     await cancelContest(req.params.id, uid(req));

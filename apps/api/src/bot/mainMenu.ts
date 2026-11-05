@@ -78,6 +78,8 @@ const HELP = `<b>Как начать</b>
 
 <b>Свой бот (White-Label):</b> «Создать бота» → оплата подписки в Stars → токен от @BotFather. Бот будет выглядеть как ваш собственный продукт.
 
+<b>Таймер перебивки:</b> <code>.таймер 2м</code> — сколько ждать после каждой ставки (от 15 сек до 60 мин), текущий отсчёт тоже сократится.
+
 <b>Быстрый розыгрыш в чате:</b> <code>.розыгрыш 10м 2 Новогодний мишка</code> — пост с кнопкой «Участвовать», итоги по таймеру.
 
 <b>SMS Counter в чате:</b> <code>.sms 100</code> — первые 100 участников, <code>.sms help</code> — все команды.
@@ -161,6 +163,7 @@ export async function setupMainBotMenu(api: TelegramApi) {
   await api.setMyCommands([
     { command: 'start', description: 'Главное меню' },
     { command: 'newbot', description: 'Создать своего бота' },
+    { command: 'timer', description: 'Изменить таймер перебивки' },
     { command: 'notify', description: 'Уведомления о конкурсах в моих чатах' },
     { command: 'help', description: 'Помощь' },
   ]);
@@ -173,6 +176,7 @@ export async function setupMainBotMenu(api: TelegramApi) {
           { command: 'start', description: 'Главное меню' },
           { command: 'admin', description: 'Админ-панель' },
           { command: 'newbot', description: 'Создать своего бота' },
+          { command: 'timer', description: 'Изменить таймер перебивки' },
           { command: 'notify', description: 'Уведомления о конкурсах в моих чатах' },
           { command: 'help', description: 'Помощь' },
         ],

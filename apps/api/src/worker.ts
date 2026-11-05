@@ -12,6 +12,7 @@ import { handleAuctionTimer } from './modules/auction/service.js';
 import { scheduleAuctionTimers } from './modules/auction/timers.js';
 import { processDelivery } from './modules/gifts/delivery.js';
 import { runImageJob, runTextJob } from './modules/ai/jobs.js';
+import { resumeAuctionsAfterDowntime } from './modules/auction/timerCommand.js';
 import { enqueuePending, RateLimited, sendBroadcastRecipient } from './modules/broadcasts/service.js';
 import { runSubscriptionMaintenance } from './modules/subscriptions/service.js';
 import { verifyGiftsWithTelegram } from './modules/gifts/catalog.js';
@@ -54,6 +55,9 @@ async function recover() {
 
 async function main() {
   await registerPlatformBot();
+  // before any worker can fire a stale «end» job
+  const resumed = await resumeAuctionsAfterDowntime().catch(() => 0);
+  if (resumed) log(`resumed ${resumed} auctions after downtime`);
 
   worker<ContestJob>(QUEUES.contestStart, async (job) => {
     const c = await prisma.contest.findUnique({ where: { id: job.data.contestId } });

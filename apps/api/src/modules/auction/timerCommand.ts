@@ -2,6 +2,7 @@ import type { Prisma, TelegramBot } from '@prisma/client';
 import { contestEvent } from '../../lib/audit.js';
 import { prisma } from '../../lib/prisma.js';
 import type { TelegramApi } from '../../telegram/client.js';
+import { apiForBot } from '../../telegram/registry.js';
 import type { TgMessage } from '../../telegram/types.js';
 import { escapeHtml } from '../../templates/render.js';
 import { isChatAdmin } from '../chats/access.js';
@@ -113,4 +114,34 @@ export async function handleTimerCallback(data: string, fromTgId: number, answer
   } catch (e) {
     return answer((e as Error).message);
   }
+}
+
+/** New end time for an auction whose timer ran out while the bot was down, or null if it didn't. */
+export function endAfterDowntime(endsAt: Date | null, extendSeconds: number, now = Date.now()): Date | null {
+  if (!endsAt || endsAt.getTime() > now + 5000) return null;
+  return new Date(now + extendSeconds * 1000);
+}
+
+/**
+ * Worker start, before any queue runs: a hosting outage must not hand the prize to whoever led when
+ * it began. Auctions that «ended» while the bot was down get a full timer again, and the chat is told.
+ * Paid messages sent meanwhile arrive from Telegram right after and keep competing as usual.
+ */
+export async function resumeAuctionsAfterDowntime() {
+  const running = await prisma.contest.findMany({ where: { type: 'STARS_AUCTION', status: 'ACTIVE', endsAt: { not: null } }, include: { bot: true } });
+  let resumed = 0;
+  for (const c of running) {
+    const cfg = auctionConfig(c);
+    const end = endAfterDowntime(c.endsAt, cfg.extendSeconds);
+    if (!end) continue;
+    await prisma.contest.update({ where: { id: c.id }, data: { endsAt: end, timerVersion: { increment: 1 } } });
+    await contestEvent(c.id, 'auction.resumed_after_downtime', { previousEndsAt: c.endsAt });
+    resumed++;
+    if (c.targetChatTgId) {
+      await apiForBot(c.bot)
+        .sendMessage(c.targetChatTgId, `<b>Бот снова на связи</b> после сбоя хостинга.\nПеребивка продолжается: лидер ${escapeHtml(c.leaderName ?? '—')}, до конца ${formatTimer(cfg.extendSeconds)}.`)
+        .catch(() => undefined);
+    }
+  }
+  return resumed;
 }

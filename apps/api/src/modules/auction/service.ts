@@ -196,7 +196,8 @@ export async function handlePaidMessageBid(bot: TelegramBot, msg: TgMessage): Pr
     if (await db.starsTransaction.findUnique({ where: { telegramPaymentChargeId: key } })) return null;
     await db.$queryRaw`SELECT id FROM "Contest" WHERE id = ${contest.id} FOR UPDATE`;
     const c = await db.contest.findUniqueOrThrow({ where: { id: contest.id } });
-    if (c.status !== 'ACTIVE' || !c.endsAt || c.endsAt.getTime() <= Date.now()) return null;
+    // not checking endsAt: after an outage Telegram delivers already-paid messages late, and they still count
+    if (c.status !== 'ACTIVE') return null;
     if (paid < cfg.minPaidStars) return null;
     await db.starsTransaction.create({
       data: { botId: bot.id, contestId: c.id, tgUserId: BigInt(from.id), username: from.username, amount: paid, kind: 'PAID_MESSAGE', status: 'APPLIED', telegramPaymentChargeId: key },

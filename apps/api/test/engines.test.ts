@@ -260,3 +260,13 @@ describe('auction timer command', () => {
     expect(parseTimerCommand('какой таймер')).toBeNull();
   });
 });
+
+describe('auction after a hosting outage', () => {
+  it('gives a full timer only if the time ran out', async () => {
+    const { endAfterDowntime } = await import('../src/modules/auction/timerCommand.js');
+    const now = Date.parse('2026-11-05T12:00:00Z');
+    expect(endAfterDowntime(new Date(now - 600_000), 180, now)!.toISOString()).toBe('2026-11-05T12:03:00.000Z');
+    expect(endAfterDowntime(new Date(now + 120_000), 180, now)).toBeNull();
+    expect(endAfterDowntime(null, 180, now)).toBeNull();
+  });
+});

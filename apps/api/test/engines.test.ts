@@ -270,3 +270,14 @@ describe('auction after a hosting outage', () => {
     expect(endAfterDowntime(null, 180, now)).toBeNull();
   });
 });
+
+describe('auction countdown ticks', () => {
+  it('are dropped when they fire late', async () => {
+    const { isLateTick } = await import('../src/modules/auction/service.js');
+    const now = Date.parse('2026-11-05T12:00:00Z');
+    expect(isLateTick(new Date(now + 10_000), 10, now)).toBe(false);
+    expect(isLateTick(new Date(now + 8_000), 10, now)).toBe(false);
+    expect(isLateTick(new Date(now - 60_000), 8, now)).toBe(true);
+    expect(isLateTick(null, 8, now)).toBe(true);
+  }, 20_000);
+});

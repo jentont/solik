@@ -238,6 +238,12 @@ export async function handlePaidMessageBid(bot: TelegramBot, msg: TgMessage): Pr
 }
 
 /** Timer job handler: warnings (60/30 s), countdown 10..1, end. */
+/** True if a «N seconds left» message is no longer true by more than 3 s. */
+export function isLateTick(endsAt: Date | null, secondsLeft: number, now = Date.now()): boolean {
+  if (!endsAt) return true;
+  return Math.abs((endsAt.getTime() - now) / 1000 - secondsLeft) > 3;
+}
+
 export async function handleAuctionTimer(job: { contestId: string; version: number; kind: 'checkpoint' | 'countdown' | 'end'; secondsLeft: number }) {
   const c = await prisma.contest.findUnique({ where: { id: job.contestId }, include: { bot: true } });
   if (!c || c.status !== 'ACTIVE' || c.timerVersion !== job.version || !c.targetChatTgId) return;
@@ -251,6 +257,8 @@ export async function handleAuctionTimer(job: { contestId: string; version: numb
     await finishContest(c.id);
     return;
   }
+  // a tick that fired late (queue backlog after downtime) would print a wrong number: drop it
+  if (isLateTick(c.endsAt, job.secondsLeft)) return;
   if (job.kind === 'checkpoint') {
     if (!cfg.warnings.includes(job.secondsLeft) || c.leaderTgId == null) return;
     await sendTemplate(api, ctx, c.targetChatTgId, 'AUCTION_WARNING', {
